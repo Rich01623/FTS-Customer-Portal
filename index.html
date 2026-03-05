@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frost Transport Solutions | Online Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script>
+        // If Google doesn't respond in 5 seconds, show an error
+        const googleTimeout = setTimeout(() => {
+            if (typeof google === 'undefined') {
+                const statusText = document.getElementById('statusText');
+                if(statusText) {
+                    statusText.innerText = "Connection Failed";
+                    statusText.classList.add("text-red-600");
+                    alert("CONNECTION ERROR:\n\n1. Go to Google Cloud Console.\n2. Enable 'Maps JavaScript API'.\n3. Ensure Billing is active.\n4. Disable any Ad-Blockers.");
+                }
+            }
+        }, 5000);
+
+        function onGoogleLoad() {
+            clearTimeout(googleTimeout);
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            if(dot) dot.className = "w-2 h-2 rounded-full bg-green-500 mr-2";
+            if(txt) {
+                txt.innerText = "Online";
+                txt.className = "text-green-600";
+            }
+            console.log("Frost Portal: Google Maps Handshake Successful.");
+        }
+    </script>
+
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry" 
+        onload="onGoogleLoad()"></script>
+    
+    <style>
+        :root { --frost-red: #c32026; --frost-bg: #f4f4f4; }
+        body { background-color: var(--frost-bg); font-family: 'Segoe UI', sans-serif; }
+        .frost-card { background: white; border-radius: 2px; border: 1px solid #ddd; box-shadow: 2px 2px 0px rgba(0,0,0,0.05); }
+        .frost-red-btn { background-color: var(--frost-red); color: white; transition: all 0.2s; font-weight: bold; border-radius: 2px; }
+        .frost-red-btn:hover { background-color: #a11a1f; transform: translateY(-1px); }
+        .vehicle-radio input:checked + div { border-color: var(--frost-red); background-color: #fffafa; outline: 1px solid var(--frost-red); }
+        .loader { border: 2px solid #f3f3f3; border-top: 2px solid var(--frost-red); border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <header class="max-w-6xl mx-auto mb-8 flex justify-between items-end border-b-2 border-slate-200 pb-6">
+        <div class="logo-container"><img src="logo.png" alt="Frost Transport" style="height:75px;"></div>
+        <div class="text-right">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-end">
+                <span id="statusDot" class="w-2 h-2 rounded-full bg-slate-300 mr-2"></span>
+                API Status: <span id="statusText" class="ml-1">Checking...</span>
+            </p>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-6">
+            
+            <section class="frost-card p-6 border-t-4 border-t-[#c32026]">
+                <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center">
+                    <i class="fa-solid fa-map-location-dot mr-2 text-red-600"></i> 01. Route & Timing
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <input type="text" id="pickup" placeholder="Collection Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600" oninput="calculateRealMileage()">
+                        <input type="text" id="delivery" placeholder="Delivery Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600" oninput="calculateRealMileage()">
+                        <div class="flex gap-2">
+                            <div class="bg-slate-100 p-2 flex-grow flex justify-between items-center border border-slate-200">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2">Road Distance: <div id="mileLoader" class="loader"></div></span>
+                                <span id="milesDisplay" class="font-black text-slate-700 italic">0 mi</span>
+                            </div>
+                            <button onclick="resetPortal()" class="bg-white border border-slate-300 px-4 flex items-center justify-center rounded-sm text-slate-400 hover:text-red-600"><i class="fa-solid fa-rotate-right text-xs"></i></button>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="date" id="dateInput" class="clearable border border-slate-300 p-3 rounded-sm outline-none">
+                            <input type="time" id="timeInput" class="clearable border border-slate-300 p-3 rounded-sm outline-none">
+                        </div>
+                        <label class="flex items-center gap-3 cursor-pointer bg-slate-50 p-3 border border-slate-200">
+                            <input type="checkbox" id="urgentOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
+                            <span class="text-xs font-black text-slate-700 uppercase italic text-[10px]">Priority / ASAP (+£50)</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="frost-card p-6 border-t-4 border-t-[#c32026]">
+                <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">02. Select Vehicle</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label class="cursor-pointer vehicle-radio"><input type="radio" name="fleet" value="44t" class="hidden" checked onchange="updateQuote()"><div class="border border-slate-300 p-6 text-center transition-all"><i class="fa-solid fa-truck-moving text-slate-300 text-3xl mb-3"></i><span class="block text-xs font-black uppercase text-slate-700">44t Artic</span></div></label>
+                    <label class="cursor-pointer vehicle-radio"><input type="radio" name="fleet" value="26t" class="hidden" onchange="updateQuote()"><div class="border border-slate-300 p-6 text-center transition-all"><i class="fa-solid fa-truck text-slate-300 text-3xl mb-3"></i><span class="block text-xs font-black uppercase text-slate-700">26t Rigid</span></div></label>
+                    <label class="cursor-pointer vehicle-radio"><input type="radio" name="fleet" value="18t" class="hidden" onchange="updateQuote()"><div class="border border-slate-300 p-6 text-center transition-all"><i class="fa-solid fa-truck-front text-slate-300 text-3xl mb-3"></i><span class="block text-xs font-black uppercase text-slate-700">18t Rigid</span></div></label>
+                </div>
+            </section>
+
+            <section class="frost-card p-6 border-t-4 border-t-[#c32026]">
+                <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">03. Load Details</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <input type="number" id="palletCount" placeholder="Pallet Quantity" class="clearable border border-slate-300 p-3 outline-none focus:border-red-600" oninput="checkCapacity()">
+                    <label class="flex items-center justify-between bg-slate-50 p-3 border border-slate-200 cursor-pointer">
+                        <span class="text-xs font-black text-slate-700 uppercase italic text-[10px]">Tail Lift Required? (+£25)</span>
+                        <input type="checkbox" id="tlOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
+                    </label>
+                </div>
+                <div id="capacityWarning" class="hidden mt-4 p-3 bg-red-100 text-red-700 text-[10px] font-bold uppercase border-l-4 border-red-600">⚠️ Load exceeds vehicle capacity</div>
+            </section>
+        </div>
+
+        <div class="lg:col-span-1">
+            <div class="bg-white border-2 border-slate-800 shadow-xl sticky top-8">
+                <div class="bg-slate-800 text-white p-6"><h3 class="text-xl font-black italic uppercase">Instant Rate</h3></div>
+                <div class="p-6 space-y-4 text-sm font-bold">
+                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="text-slate-400 uppercase text-[10px]">Base Rate</span><span id="basePriceDisplay">£250.00</span></div>
+                    <div class="flex justify-between border-b border-slate-100 pb-2"><span class="text-slate-400 uppercase text-[10px]">Miles & Fees</span><span id="feeDisplay">£0.00</span></div>
+                    <div class="pt-4 flex justify-between items-end"><span class="text-[10px] uppercase text-slate-400">Total (Ex VAT)</span><span id="totalDisplay" class="text-4xl text-[#c32026] font-black italic">£250.00</span></div>
+                    <button class="w-full frost-red-btn py-5 uppercase mt-6 shadow-md">Confirm Booking</button>
+                    <p class="text-center text-[9px] text-slate-400 uppercase font-black mt-4 tracking-widest italic">Price Subject to Review</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vehicleRates = { "44t": 250, "26t": 185, "18t": 165 };
+        const capacities = { "44t": 26, "26t": 14, "18t": 12 };
+        const ppm = 1.85; 
+        let currentMiles = 0;
+
+        function calculateRealMileage() {
+            const origin = document.getElementById('pickup').value;
+            const destination = document.getElementById('delivery').value;
+            const loader = document.getElementById('mileLoader');
+
+            if (origin.length >= 5 && destination.length >= 5) {
+                loader.style.display = 'inline-block';
+                const service = new google.maps.DistanceMatrixService();
+                service.getDistanceMatrix({
+                    origins: [origin],
+                    destinations: [destination],
+                    travelMode: 'DRIVING',
+                    unitSystem: google.maps.UnitSystem.IMPERIAL,
+                }, (response, status) => {
+                    loader.style.display = 'none';
+                    if (status === 'OK') {
+                        const element = response.rows[0].elements[0];
+                        if (element.status === 'OK') {
+                            currentMiles = Math.round(element.distance.value * 0.000621371);
+                            document.getElementById('milesDisplay').innerText = currentMiles + " mi";
+                            updateQuote();
+                        }
+                    } else {
+                        alert("API error: " + status + ". Is Distance Matrix API enabled?");
+                    }
+                });
+            }
+        }
+
+        function updateQuote() {
+            const fleet = document.querySelector('input[name="fleet"]:checked').value;
+            const base = vehicleRates[fleet];
+            const mileageCost = currentMiles * ppm;
+            let fees = mileageCost;
+            if (document.getElementById('tlOpt').checked) fees += 25;
+            if (document.getElementById('urgentOpt').checked) fees += 50;
+
+            document.getElementById('basePriceDisplay').innerText = '£' + base.toFixed(2);
+            document.getElementById('feeDisplay').innerText = '£' + fees.toFixed(2);
+            document.getElementById('totalDisplay').innerText = '£' + (base + fees).toFixed(2);
+            checkCapacity();
+        }
+
+        function checkCapacity() {
+            const fleet = document.querySelector('input[name="fleet"]:checked').value;
+            const pallets = parseInt(document.getElementById('palletCount').value) || 0;
+            const warning = document.getElementById('capacityWarning');
+            (pallets > capacities[fleet]) ? warning.classList.remove('hidden') : warning.classList.add('hidden');
+        }
+
+        function resetPortal() {
+            const inputs = document.querySelectorAll('.clearable');
+            inputs.forEach(input => { if (input.type === 'checkbox') input.checked = false; else input.value = ''; });
+            currentMiles = 0;
+            document.getElementById('milesDisplay').innerText = "0 mi";
+            document.getElementById('capacityWarning').classList.add('hidden');
+            document.querySelector('input[name="fleet"][value="44t"]').checked = true;
+            updateQuote();
+        }
+    </script>
+</body>
+</html>
