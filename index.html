@@ -44,6 +44,8 @@
         .vehicle-radio input:checked + div { border-color: var(--frost-red); background-color: #fffafa; outline: 1px solid var(--frost-red); }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid var(--frost-red); border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Frost Standard Input height (Tailwind h-12 equivalent) */
+        .frost-input { height: 48px; }
     </style>
 </head>
 <body class="p-4 md:p-10">
@@ -66,10 +68,10 @@
                     <i class="fa-solid fa-user-tie mr-2 text-slate-800"></i> 00. Customer Information
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" id="custName" placeholder="Contact Name" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600">
-                    <input type="text" id="custCompany" placeholder="Company Name" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600">
-                    <input type="email" id="custEmail" placeholder="Email Address" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600">
-                    <input type="tel" id="custPhone" placeholder="Phone Number" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600">
+                    <input type="text" id="custName" placeholder="Contact Name" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 frost-input">
+                    <input type="text" id="custCompany" placeholder="Company Name" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 frost-input">
+                    <input type="email" id="custEmail" placeholder="Email Address" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 frost-input">
+                    <input type="tel" id="custPhone" placeholder="Phone Number" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 frost-input">
                 </div>
             </section>
 
@@ -77,33 +79,47 @@
                 <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center">
                     <i class="fa-solid fa-map-location-dot mr-2 text-red-600"></i> 01. Route & Timing
                 </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <input type="text" id="pickup" placeholder="Collection Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase" oninput="calculateRealMileage()">
-                        <input type="text" id="delivery" placeholder="Delivery Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase" oninput="calculateRealMileage()">
-                        <div class="flex gap-2">
-                            <div class="bg-slate-100 p-2 flex-grow grid grid-cols-2 gap-2 border border-slate-200">
-                                <div class="flex flex-col">
-                                    <span class="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1">Distance: <div id="mileLoader" class="loader"></div></span>
-                                    <span id="milesDisplay" class="font-black text-slate-700 italic">0 mi</span>
-                                </div>
-                                <div class="flex flex-col border-l border-slate-300 pl-2">
-                                    <span class="text-[9px] font-bold text-slate-500 uppercase">Est. Drive Time:</span>
-                                    <span id="timeDisplay" class="font-black text-slate-700 italic">-- mins</span>
-                                </div>
-                            </div>
-                            <button onclick="resetPortal()" class="bg-white border border-slate-300 px-4 flex items-center justify-center rounded-sm text-slate-400 hover:text-red-600" title="Reset Portal"><i class="fa-solid fa-rotate-right text-xs"></i></button>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Collection Postcode</label>
+                        <input type="text" id="pickup" placeholder="E.gNG19" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase frost-input" oninput="calculateRealMileage()">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Collection Date & Time</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="date" id="dateInput" onchange="updateQuote()" class="clearable border border-slate-300 px-3 text-sm rounded-sm outline-none focus:border-red-600 frost-input">
+                            <input type="time" id="timeInput" onchange="updateQuote()" class="clearable border border-slate-300 px-3 text-sm rounded-sm outline-none focus:border-red-600 frost-input">
                         </div>
                     </div>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="date" id="dateInput" class="clearable border border-slate-300 p-3 rounded-sm outline-none">
-                            <input type="time" id="timeInput" onchange="updateQuote()" class="clearable border border-slate-300 p-3 rounded-sm outline-none">
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Delivery Postcode</label>
+                        <input type="text" id="delivery" placeholder="E.g. M1" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase frost-input" oninput="calculateRealMileage()">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Delivery Date & Time</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="date" id="deliveryDateInput" onchange="updateQuote()" class="clearable border border-slate-300 px-3 text-sm rounded-sm outline-none focus:border-red-600 frost-input">
+                            <input type="time" id="deliveryTimeInput" onchange="updateQuote()" class="clearable border border-slate-300 px-3 text-sm rounded-sm outline-none focus:border-red-600 frost-input">
                         </div>
-                        <label class="flex items-center gap-3 cursor-pointer bg-slate-50 p-3 border border-slate-200">
-                            <input type="checkbox" id="urgentOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
-                            <span class="text-xs font-black text-slate-700 uppercase italic text-[10px]">Priority / ASAP (+£50)</span>
-                        </label>
+                    </div>
+
+                    <div class="space-y-1 md:col-span-2 pt-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Route Summary</label>
+                        <div class="flex gap-2">
+                            <div class="bg-slate-100 border border-slate-200 p-3 px-5 flex-grow flex items-center justify-between frost-input">
+                                <span class="text-[10px] font-black text-slate-500 uppercase flex items-center gap-1">Total Distance <div id="mileLoader" class="loader"></div></span>
+                                <span id="milesDisplay" class="text-xl font-black text-slate-800 italic">0 mi</span>
+                            </div>
+                            <div class="bg-slate-100 border border-slate-200 p-3 px-5 flex-grow flex items-center justify-between frost-input">
+                                <span class="text-[10px] font-black text-slate-500 uppercase">Est. Drive Time</span>
+                                <span id="timeDisplay" class="text-xl font-black text-slate-800 italic">-- mins</span>
+                            </div>
+                            <button onclick="resetPortal()" class="bg-white border border-slate-300 px-6 flex items-center justify-center rounded-sm text-slate-400 hover:text-red-600 transition-all frost-input" title="Reset Portal">
+                                <i class="fa-solid fa-rotate-right text-sm"></i> 
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -118,19 +134,23 @@
             </section>
 
             <section class="frost-card p-6 border-t-4 border-t-[#c32026]">
-                <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">03. Load Details</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                    <input type="number" id="palletCount" placeholder="Pallet Quantity" class="clearable border border-slate-300 p-3 outline-none focus:border-red-600" oninput="updateQuote()">
-                    <label class="flex items-center justify-between bg-slate-50 p-3 border border-slate-200 cursor-pointer">
-                        <span class="text-xs font-black text-slate-700 uppercase italic text-[10px]">Tail Lift Required? (+£50)</span>
+                <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">03. Load Details & Options</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <input type="number" id="palletCount" placeholder="Pallets" class="clearable border border-slate-300 p-3 outline-none focus:border-red-600 frost-input" oninput="updateQuote()">
+                    <label class="flex items-center justify-between bg-slate-50 p-3 border border-slate-200 cursor-pointer frost-input">
+                        <span class="text-xs font-black text-slate-700 uppercase italic text-[9px]">Tail Lift (+£50)</span>
                         <input type="checkbox" id="tlOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
+                    </label>
+                    <label class="flex items-center justify-between bg-slate-50 p-3 border border-slate-200 cursor-pointer frost-input">
+                        <span class="text-xs font-black text-slate-700 uppercase italic text-[9px]">Priority (+£50)</span>
+                        <input type="checkbox" id="urgentOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
                     </label>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                     <div class="flex flex-col">
                         <label class="text-[10px] font-black text-slate-400 uppercase mb-2 italic">Est. Load Time (1hr Incl.)</label>
-                        <select id="loadTime" onchange="updateQuote()" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 bg-white text-sm">
+                        <select id="loadTime" onchange="updateQuote()" class="clearable border border-slate-300 px-3 rounded-sm outline-none focus:border-red-600 bg-white text-sm frost-input">
                             <option value="1">1 Hour (Included)</option>
                             <option value="2">2 Hours (+£50)</option>
                             <option value="3">3 Hours (+£100)</option>
@@ -140,7 +160,7 @@
                     </div>
                     <div class="flex flex-col">
                         <label class="text-[10px] font-black text-slate-400 uppercase mb-2 italic">Est. Tip Time (1hr Incl.)</label>
-                        <select id="tipTime" onchange="updateQuote()" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 bg-white text-sm">
+                        <select id="tipTime" onchange="updateQuote()" class="clearable border border-slate-300 px-3 rounded-sm outline-none focus:border-red-600 bg-white text-sm frost-input">
                             <option value="1">1 Hour (Included)</option>
                             <option value="2">2 Hours (+£50)</option>
                             <option value="3">3 Hours (+£100)</option>
@@ -164,9 +184,9 @@
                     <div class="flex justify-between border-b border-slate-100 pb-2"><span class="text-slate-400 uppercase text-[10px]">Miles & Surcharges</span><span id="feeDisplay">£0.00</span></div>
                     <div class="pt-4 flex justify-between items-end"><span class="text-[10px] uppercase text-slate-400">Total (Ex VAT)</span><span id="totalDisplay" class="text-4xl text-[#c32026] font-black italic">£250.00</span></div>
                     
-                    <button onclick="confirmBooking()" class="w-full frost-red-btn py-5 uppercase mt-6 shadow-md">Confirm Booking</button>
+                    <button onclick="confirmBooking()" class="w-full frost-red-btn py-5 uppercase mt-6 shadow-md frost-input">Confirm Booking</button>
                     
-                    <button onclick="generatePDF()" class="w-full mt-2 border-2 border-slate-800 text-slate-800 py-3 uppercase font-black text-xs hover:bg-slate-800 hover:text-white transition-all">
+                    <button onclick="generatePDF()" class="w-full mt-2 border-2 border-slate-800 text-slate-800 py-3 uppercase font-black text-xs hover:bg-slate-800 hover:text-white transition-all frost-input">
                         <i class="fa-solid fa-file-pdf mr-2"></i> Download Quote PDF
                     </button>
                     
@@ -177,13 +197,15 @@
     </div>
 
     <script>
+        // Rates & Rules
         const vehicleRates = { "44t": 250, "26t": 185, "18t": 165 };
         const capacities = { "44t": 26, "26t": 14, "18t": 12 };
         const ppm = 3; 
         const demurrageRate = 50; 
         const oohSurcharge = 50; 
         const m25Surcharge = 50;
-        const tailLiftSurcharge = 50; // UPDATED to £50
+        const tailLiftSurcharge = 50;
+        const parkingSurcharge = 50;
 
         const m25Postcodes = ["E", "EC", "N", "NW", "SE", "SW", "W", "WC", "BR", "CR", "DA", "EN", "HA", "IG", "KT", "RM", "SM", "TW", "UB", "WD"];
 
@@ -231,30 +253,29 @@
             
             let fees = mileageCost;
             
-            // Tail Lift (Updated logic)
             if (document.getElementById('tlOpt').checked) fees += tailLiftSurcharge;
-            
-            // Urgent Priority
             if (document.getElementById('urgentOpt').checked) fees += 50;
 
-            // Demurrage
             const extraLoadHours = Math.max(0, parseInt(document.getElementById('loadTime').value) - 1);
             const extraTipHours = Math.max(0, parseInt(document.getElementById('tipTime').value) - 1);
             fees += (extraLoadHours + extraTipHours) * demurrageRate;
 
-            // OOH Surcharge
-            const timeVal = document.getElementById('timeInput').value;
-            if(timeVal) {
-                const hour = parseInt(timeVal.split(':')[0]);
-                if(hour >= 18 || hour < 6) fees += oohSurcharge;
-            }
+            const cTime = document.getElementById('timeInput').value;
+            const dTime = document.getElementById('deliveryTimeInput').value;
+            [cTime, dTime].forEach(t => {
+                if(t) {
+                    const hour = parseInt(t.split(':')[0]);
+                    if(hour >= 18 || hour < 6) fees += oohSurcharge;
+                }
+            });
 
-            // M25 Surcharge
             const pickup = document.getElementById('pickup').value;
             const delivery = document.getElementById('delivery').value;
-            if (isM25(pickup) || isM25(delivery)) {
-                fees += m25Surcharge;
-            }
+            if (isM25(pickup) || isM25(delivery)) fees += m25Surcharge;
+
+            const dateColl = document.getElementById('dateInput').value;
+            const dateDeliv = document.getElementById('deliveryDateInput').value;
+            if(dateColl && dateDeliv && dateColl !== dateDeliv) fees += parkingSurcharge;
             
             document.getElementById('basePriceDisplay').innerText = '£' + base.toFixed(2);
             document.getElementById('feeDisplay').innerText = '£' + fees.toFixed(2);
@@ -298,26 +319,17 @@
             const total = document.getElementById('totalDisplay').innerText;
             const vehicleText = document.querySelector('input[name="fleet"]:checked').parentElement.innerText.trim();
             const palletCount = document.getElementById('palletCount').value || 0;
-            const lTime = document.getElementById('loadTime').value + " hr(s)";
-            const tTime = document.getElementById('tipTime').value + " hr(s)";
             
             const now = new Date();
-            const ukDate = now.toLocaleDateString('en-GB'); 
-            const ukTimeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-            const generationStamp = `${ukDate} at ${ukTimeStr}`;
+            const generationStamp = `${now.toLocaleDateString('en-GB')} at ${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
 
             const rawDate = document.getElementById('dateInput').value;
-            let formattedReqDate = "Not Specified";
-            if(rawDate) {
-                const d = new Date(rawDate);
-                formattedReqDate = d.toLocaleDateString('en-GB');
-            }
-            const reqTime = document.getElementById('timeInput').value || "Not Specified";
+            const rawDelivDate = document.getElementById('deliveryDateInput').value;
+            const cTime = document.getElementById('timeInput').value || "TBC";
+            const dTime = document.getElementById('deliveryTimeInput').value || "TBC";
 
-            doc.setFillColor(195, 32, 38); 
-            doc.rect(0, 0, 210, 40, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(22); doc.setFont("helvetica", "bold");
+            doc.setFillColor(195, 32, 38); doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.setFont("helvetica", "bold");
             doc.text("FROST TRANSPORT SOLUTIONS", 15, 25);
             
             doc.setTextColor(40, 40, 40); doc.setFontSize(9);
@@ -339,27 +351,28 @@
             doc.text(`Delivery: ${delivery}`, 15, 97);
             doc.text(`Road Miles: ${currentMiles} miles`, 15, 104);
             doc.text(`Est. Drive Time: ${currentDriveTime}`, 15, 111);
-            doc.setFont("helvetica", "bold");
-            doc.text(`Dwell Time: ${lTime} Load / ${tTime} Tip`, 15, 118);
 
             doc.setFont("helvetica", "bold");
             doc.text("SCHEDULE & EQUIPMENT", 110, 80);
             doc.setFont("helvetica", "normal");
             doc.text(`Vehicle: ${vehicleText}`, 110, 90);
             doc.text(`Pallets: ${palletCount}`, 110, 97);
-            doc.text(`Date: ${formattedReqDate}`, 110, 104);
-            doc.text(`Time: ${reqTime}`, 110, 111);
+            doc.text(`Collection: ${rawDate || 'TBC'} @ ${cTime}`, 110, 104);
+            doc.text(`Delivery: ${rawDelivDate || 'TBC'} @ ${dTime}`, 110, 111);
             
             let surchargeList = [];
             if (document.getElementById('tlOpt').checked) surchargeList.push("Tail Lift (+£50)");
             if (document.getElementById('urgentOpt').checked) surchargeList.push("Priority (+£50)");
             
-            if(reqTime !== "Not Specified") {
-                const hour = parseInt(reqTime.split(':')[0]);
-                if(hour >= 18 || hour < 6) surchargeList.push("Out of Hours (+£50)");
-            }
+            [cTime, dTime].forEach(t => {
+                if(t !== "TBC") {
+                    const hr = parseInt(t.split(':')[0]);
+                    if(hr >= 18 || hr < 6) surchargeList.push("Out of Hours (+£50)");
+                }
+            });
 
             if (isM25(pickup) || isM25(delivery)) surchargeList.push("M25 Surcharge (+£50)");
+            if (rawDate && rawDelivDate && rawDate !== rawDelivDate) surchargeList.push("Secure Parking (+£50)");
 
             const exLoad = parseInt(document.getElementById('loadTime').value) - 1;
             const exTip = parseInt(document.getElementById('tipTime').value) - 1;
@@ -374,15 +387,14 @@
             }
             doc.setTextColor(40, 40, 40);
 
-            doc.setFillColor(245, 245, 245);
-            doc.rect(15, 140, 180, 40, 'F');
+            doc.setFillColor(245, 245, 245); doc.rect(15, 145, 180, 40, 'F');
             doc.setFontSize(14); doc.setFont("helvetica", "bold");
-            doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 155);
+            doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 160);
             doc.setTextColor(195, 32, 38); doc.setFontSize(30);
-            doc.text(total, 20, 170);
+            doc.text(total, 20, 175);
 
             doc.setTextColor(150, 150, 150); doc.setFontSize(8);
-            doc.text("Frost Transport Solutions Ltd - Professional Haulage & Logistics Specialists.", 15, 200);
+            doc.text("Frost Transport Solutions Ltd - Professional Haulage & Logistics Specialists.", 15, 210);
             doc.save(`Frost_Quote_${pickup}.pdf`);
         }
     </script>
