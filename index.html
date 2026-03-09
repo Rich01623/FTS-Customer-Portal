@@ -79,8 +79,8 @@
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-4">
-                        <input type="text" id="pickup" placeholder="Collection Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600" oninput="calculateRealMileage()">
-                        <input type="text" id="delivery" placeholder="Delivery Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600" oninput="calculateRealMileage()">
+                        <input type="text" id="pickup" placeholder="Collection Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase" oninput="calculateRealMileage()">
+                        <input type="text" id="delivery" placeholder="Delivery Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase" oninput="calculateRealMileage()">
                         <div class="flex gap-2">
                             <div class="bg-slate-100 p-2 flex-grow grid grid-cols-2 gap-2 border border-slate-200">
                                 <div class="flex flex-col">
@@ -181,7 +181,12 @@
         const capacities = { "44t": 26, "26t": 14, "18t": 12 };
         const ppm = 3; 
         const demurrageRate = 50; 
-        const oohSurcharge = 50; // Night fee
+        const oohSurcharge = 50; 
+        const m25Surcharge = 50;
+
+        // Postcode areas inside or touching the M25 ring
+        const m25Postcodes = ["E", "EC", "N", "NW", "SE", "SW", "W", "WC", "BR", "CR", "DA", "EN", "HA", "IG", "KT", "RM", "SM", "TW", "UB", "WD"];
+
         let currentMiles = 0;
         let currentDriveTime = "-- mins";
 
@@ -189,7 +194,7 @@
             const origin = document.getElementById('pickup').value;
             const destination = document.getElementById('delivery').value;
             const loader = document.getElementById('mileLoader');
-            if (origin.length >= 5 && destination.length >= 5) {
+            if (origin.length >= 2 && destination.length >= 2) {
                 loader.style.display = 'inline-block';
                 const service = new google.maps.DistanceMatrixService();
                 service.getDistanceMatrix({
@@ -213,6 +218,13 @@
             }
         }
 
+        function isM25(postcode) {
+            if (!postcode) return false;
+            // Get the first one or two letters
+            const prefix = postcode.trim().toUpperCase().match(/^[A-Z]{1,2}/);
+            return prefix && m25Postcodes.includes(prefix[0]);
+        }
+
         function updateQuote() {
             const fleet = document.querySelector('input[name="fleet"]:checked').value;
             const base = vehicleRates[fleet];
@@ -223,18 +235,23 @@
             if (document.getElementById('tlOpt').checked) fees += 25;
             if (document.getElementById('urgentOpt').checked) fees += 50;
 
-            // Dwell Time Calculation
+            // Demurrage
             const extraLoadHours = Math.max(0, parseInt(document.getElementById('loadTime').value) - 1);
             const extraTipHours = Math.max(0, parseInt(document.getElementById('tipTime').value) - 1);
             fees += (extraLoadHours + extraTipHours) * demurrageRate;
 
-            // NEW: Out of Hours Calculation (18:00 - 06:00)
+            // OOH Surcharge
             const timeVal = document.getElementById('timeInput').value;
             if(timeVal) {
                 const hour = parseInt(timeVal.split(':')[0]);
-                if(hour >= 18 || hour < 6) {
-                    fees += oohSurcharge;
-                }
+                if(hour >= 18 || hour < 6) fees += oohSurcharge;
+            }
+
+            // NEW: M25 Surcharge
+            const pickup = document.getElementById('pickup').value;
+            const delivery = document.getElementById('delivery').value;
+            if (isM25(pickup) || isM25(delivery)) {
+                fees += m25Surcharge;
             }
             
             document.getElementById('basePriceDisplay').innerText = '£' + base.toFixed(2);
@@ -335,11 +352,12 @@
             if (document.getElementById('tlOpt').checked) surchargeList.push("Tail Lift (+£25)");
             if (document.getElementById('urgentOpt').checked) surchargeList.push("Priority (+£50)");
             
-            // Check for OOH for PDF
             if(reqTime !== "Not Specified") {
                 const hour = parseInt(reqTime.split(':')[0]);
                 if(hour >= 18 || hour < 6) surchargeList.push("Out of Hours (+£50)");
             }
+
+            if (isM25(pickup) || isM25(delivery)) surchargeList.push("M25 Surcharge (+£50)");
 
             const exLoad = parseInt(document.getElementById('loadTime').value) - 1;
             const exTip = parseInt(document.getElementById('tipTime').value) - 1;
@@ -347,19 +365,23 @@
             
             if (surchargeList.length > 0) {
                 doc.setTextColor(195, 32, 38); doc.setFontSize(9);
-                doc.text(`Surcharges: ${surchargeList.join(', ')}`, 110, 118);
+                // Simple wrapping for many surcharges
+                let currentY = 118;
+                surchargeList.forEach((s, i) => {
+                    doc.text(s, 110, currentY + (i * 5));
+                });
             }
             doc.setTextColor(40, 40, 40);
 
             doc.setFillColor(245, 245, 245);
-            doc.rect(15, 130, 180, 40, 'F');
+            doc.rect(15, 140, 180, 40, 'F');
             doc.setFontSize(14); doc.setFont("helvetica", "bold");
-            doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 145);
+            doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 155);
             doc.setTextColor(195, 32, 38); doc.setFontSize(30);
-            doc.text(total, 20, 160);
+            doc.text(total, 20, 170);
 
             doc.setTextColor(150, 150, 150); doc.setFontSize(8);
-            doc.text("Frost Transport Solutions Ltd - Professional Haulage & Logistics Specialists.", 15, 190);
+            doc.text("Frost Transport Solutions Ltd - Professional Haulage & Logistics Specialists.", 15, 200);
             doc.save(`Frost_Quote_${pickup}.pdf`);
         }
     </script>
