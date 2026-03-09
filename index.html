@@ -98,7 +98,7 @@
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-3">
                             <input type="date" id="dateInput" class="clearable border border-slate-300 p-3 rounded-sm outline-none">
-                            <input type="time" id="timeInput" class="clearable border border-slate-300 p-3 rounded-sm outline-none">
+                            <input type="time" id="timeInput" onchange="updateQuote()" class="clearable border border-slate-300 p-3 rounded-sm outline-none">
                         </div>
                         <label class="flex items-center gap-3 cursor-pointer bg-slate-50 p-3 border border-slate-200">
                             <input type="checkbox" id="urgentOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
@@ -119,13 +119,37 @@
 
             <section class="frost-card p-6 border-t-4 border-t-[#c32026]">
                 <h2 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">03. Load Details</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                     <input type="number" id="palletCount" placeholder="Pallet Quantity" class="clearable border border-slate-300 p-3 outline-none focus:border-red-600" oninput="updateQuote()">
                     <label class="flex items-center justify-between bg-slate-50 p-3 border border-slate-200 cursor-pointer">
                         <span class="text-xs font-black text-slate-700 uppercase italic text-[10px]">Tail Lift Required? (+£25)</span>
                         <input type="checkbox" id="tlOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
                     </label>
                 </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-2 italic">Est. Load Time (1hr Incl.)</label>
+                        <select id="loadTime" onchange="updateQuote()" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 bg-white text-sm">
+                            <option value="1">1 Hour (Included)</option>
+                            <option value="2">2 Hours (+£50)</option>
+                            <option value="3">3 Hours (+£100)</option>
+                            <option value="4">4 Hours (+£150)</option>
+                            <option value="5">5 Hours (+£200)</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-2 italic">Est. Tip Time (1hr Incl.)</label>
+                        <select id="tipTime" onchange="updateQuote()" class="clearable border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 bg-white text-sm">
+                            <option value="1">1 Hour (Included)</option>
+                            <option value="2">2 Hours (+£50)</option>
+                            <option value="3">3 Hours (+£100)</option>
+                            <option value="4">4 Hours (+£150)</option>
+                            <option value="5">5 Hours (+£200)</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div id="capacityWarning" class="hidden mt-4 p-3 bg-red-100 text-red-700 text-[10px] font-bold uppercase border-l-4 border-red-600 flex items-center">
                     <i class="fa-solid fa-triangle-exclamation mr-2"></i> Warning: Load exceeds vehicle capacity!
                 </div>
@@ -156,6 +180,8 @@
         const vehicleRates = { "44t": 250, "26t": 185, "18t": 165 };
         const capacities = { "44t": 26, "26t": 14, "18t": 12 };
         const ppm = 3; 
+        const demurrageRate = 50; 
+        const oohSurcharge = 50; // Night fee
         let currentMiles = 0;
         let currentDriveTime = "-- mins";
 
@@ -178,7 +204,6 @@
                         if (element.status === 'OK') {
                             currentMiles = Math.round(element.distance.value * 0.000621371);
                             currentDriveTime = element.duration.text;
-                            
                             document.getElementById('milesDisplay').innerText = currentMiles + " mi";
                             document.getElementById('timeDisplay').innerText = currentDriveTime;
                             updateQuote();
@@ -192,9 +217,25 @@
             const fleet = document.querySelector('input[name="fleet"]:checked').value;
             const base = vehicleRates[fleet];
             const mileageCost = currentMiles * ppm;
+            
             let fees = mileageCost;
+            
             if (document.getElementById('tlOpt').checked) fees += 25;
             if (document.getElementById('urgentOpt').checked) fees += 50;
+
+            // Dwell Time Calculation
+            const extraLoadHours = Math.max(0, parseInt(document.getElementById('loadTime').value) - 1);
+            const extraTipHours = Math.max(0, parseInt(document.getElementById('tipTime').value) - 1);
+            fees += (extraLoadHours + extraTipHours) * demurrageRate;
+
+            // NEW: Out of Hours Calculation (18:00 - 06:00)
+            const timeVal = document.getElementById('timeInput').value;
+            if(timeVal) {
+                const hour = parseInt(timeVal.split(':')[0]);
+                if(hour >= 18 || hour < 6) {
+                    fees += oohSurcharge;
+                }
+            }
             
             document.getElementById('basePriceDisplay').innerText = '£' + base.toFixed(2);
             document.getElementById('feeDisplay').innerText = '£' + fees.toFixed(2);
@@ -208,7 +249,7 @@
         function confirmBooking() {
             const name = document.getElementById('custName').value;
             if(!name || name.trim() === "") { 
-                alert("Please enter your name in Section 00 so our planners know who to ask for!"); 
+                alert("Please enter your name in Section 00!"); 
                 return; 
             }
             alert(`Thank you ${name}, our transport planners will call you shortly.`);
@@ -221,6 +262,8 @@
             currentDriveTime = "-- mins";
             document.getElementById('milesDisplay').innerText = "0 mi";
             document.getElementById('timeDisplay').innerText = "-- mins";
+            document.getElementById('loadTime').value = "1";
+            document.getElementById('tipTime').value = "1";
             document.getElementById('v_44t').checked = true;
             updateQuote();
         }
@@ -236,12 +279,13 @@
             const total = document.getElementById('totalDisplay').innerText;
             const vehicleText = document.querySelector('input[name="fleet"]:checked').parentElement.innerText.trim();
             const palletCount = document.getElementById('palletCount').value || 0;
+            const lTime = document.getElementById('loadTime').value + " hr(s)";
+            const tTime = document.getElementById('tipTime').value + " hr(s)";
             
-            // UK DATE/TIME FORMATTING
             const now = new Date();
             const ukDate = now.toLocaleDateString('en-GB'); 
-            const ukTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-            const generationStamp = `${ukDate} at ${ukTime}`;
+            const ukTimeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const generationStamp = `${ukDate} at ${ukTimeStr}`;
 
             const rawDate = document.getElementById('dateInput').value;
             let formattedReqDate = "Not Specified";
@@ -251,7 +295,6 @@
             }
             const reqTime = document.getElementById('timeInput').value || "Not Specified";
 
-            // PDF Design
             doc.setFillColor(195, 32, 38); 
             doc.rect(0, 0, 210, 40, 'F');
             doc.setTextColor(255, 255, 255);
@@ -273,26 +316,38 @@
             doc.setFontSize(11); doc.setFont("helvetica", "bold");
             doc.text("LOGISTICS OVERVIEW", 15, 80);
             doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-            doc.text(`Collection Point: ${pickup}`, 15, 90);
-            doc.text(`Delivery Point: ${delivery}`, 15, 97);
-            doc.text(`Total Road Miles: ${currentMiles}`, 15, 104);
-            doc.text(`Est. Transit Time: ${currentDriveTime}`, 15, 111);
+            doc.text(`Collection: ${pickup}`, 15, 90);
+            doc.text(`Delivery: ${delivery}`, 15, 97);
+            doc.text(`Road Miles: ${currentMiles} miles`, 15, 104);
+            doc.text(`Est. Drive Time: ${currentDriveTime}`, 15, 111);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Dwell Time: ${lTime} Load / ${tTime} Tip`, 15, 118);
 
             doc.setFont("helvetica", "bold");
             doc.text("SCHEDULE & EQUIPMENT", 110, 80);
             doc.setFont("helvetica", "normal");
-            doc.text(`Vehicle Type: ${vehicleText}`, 110, 90);
-            doc.text(`Pallet Count: ${palletCount}`, 110, 97);
-            doc.text(`Requested Date: ${formattedReqDate}`, 110, 104);
-            doc.text(`Requested Time: ${reqTime}`, 110, 111);
+            doc.text(`Vehicle: ${vehicleText}`, 110, 90);
+            doc.text(`Pallets: ${palletCount}`, 110, 97);
+            doc.text(`Date: ${formattedReqDate}`, 110, 104);
+            doc.text(`Time: ${reqTime}`, 110, 111);
             
             let surchargeList = [];
             if (document.getElementById('tlOpt').checked) surchargeList.push("Tail Lift (+£25)");
-            if (document.getElementById('urgentOpt').checked) surchargeList.push("Priority/ASAP (+£50)");
+            if (document.getElementById('urgentOpt').checked) surchargeList.push("Priority (+£50)");
+            
+            // Check for OOH for PDF
+            if(reqTime !== "Not Specified") {
+                const hour = parseInt(reqTime.split(':')[0]);
+                if(hour >= 18 || hour < 6) surchargeList.push("Out of Hours (+£50)");
+            }
+
+            const exLoad = parseInt(document.getElementById('loadTime').value) - 1;
+            const exTip = parseInt(document.getElementById('tipTime').value) - 1;
+            if(exLoad > 0 || exTip > 0) surchargeList.push(`Waiting Time (+£${(exLoad + exTip) * 50})`);
             
             if (surchargeList.length > 0) {
-                doc.setTextColor(195, 32, 38);
-                doc.text(`Surcharges: ${surchargeList.join(', ')}`, 15, 118);
+                doc.setTextColor(195, 32, 38); doc.setFontSize(9);
+                doc.text(`Surcharges: ${surchargeList.join(', ')}`, 110, 118);
             }
             doc.setTextColor(40, 40, 40);
 
