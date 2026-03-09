@@ -82,9 +82,15 @@
                         <input type="text" id="pickup" placeholder="Collection Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600" oninput="calculateRealMileage()">
                         <input type="text" id="delivery" placeholder="Delivery Postcode" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600" oninput="calculateRealMileage()">
                         <div class="flex gap-2">
-                            <div class="bg-slate-100 p-2 flex-grow flex justify-between items-center border border-slate-200">
-                                <span class="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2">Distance: <div id="mileLoader" class="loader"></div></span>
-                                <span id="milesDisplay" class="font-black text-slate-700 italic">0 mi</span>
+                            <div class="bg-slate-100 p-2 flex-grow grid grid-cols-2 gap-2 border border-slate-200">
+                                <div class="flex flex-col">
+                                    <span class="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1">Distance: <div id="mileLoader" class="loader"></div></span>
+                                    <span id="milesDisplay" class="font-black text-slate-700 italic">0 mi</span>
+                                </div>
+                                <div class="flex flex-col border-l border-slate-300 pl-2">
+                                    <span class="text-[9px] font-bold text-slate-500 uppercase">Est. Drive Time:</span>
+                                    <span id="timeDisplay" class="font-black text-slate-700 italic">-- mins</span>
+                                </div>
                             </div>
                             <button onclick="resetPortal()" class="bg-white border border-slate-300 px-4 flex items-center justify-center rounded-sm text-slate-400 hover:text-red-600" title="Reset Portal"><i class="fa-solid fa-rotate-right text-xs"></i></button>
                         </div>
@@ -151,6 +157,7 @@
         const capacities = { "44t": 26, "26t": 14, "18t": 12 };
         const ppm = 3; 
         let currentMiles = 0;
+        let currentDriveTime = "-- mins";
 
         function calculateRealMileage() {
             const origin = document.getElementById('pickup').value;
@@ -170,7 +177,10 @@
                         const element = response.rows[0].elements[0];
                         if (element.status === 'OK') {
                             currentMiles = Math.round(element.distance.value * 0.000621371);
+                            currentDriveTime = element.duration.text;
+                            
                             document.getElementById('milesDisplay').innerText = currentMiles + " mi";
+                            document.getElementById('timeDisplay').innerText = currentDriveTime;
                             updateQuote();
                         }
                     }
@@ -208,7 +218,9 @@
             const inputs = document.querySelectorAll('.clearable');
             inputs.forEach(input => { if (input.type === 'checkbox') input.checked = false; else input.value = ''; });
             currentMiles = 0;
+            currentDriveTime = "-- mins";
             document.getElementById('milesDisplay').innerText = "0 mi";
+            document.getElementById('timeDisplay').innerText = "-- mins";
             document.getElementById('v_44t').checked = true;
             updateQuote();
         }
@@ -264,6 +276,7 @@
             doc.text(`Collection Point: ${pickup}`, 15, 90);
             doc.text(`Delivery Point: ${delivery}`, 15, 97);
             doc.text(`Total Road Miles: ${currentMiles}`, 15, 104);
+            doc.text(`Est. Transit Time: ${currentDriveTime}`, 15, 111);
 
             doc.setFont("helvetica", "bold");
             doc.text("SCHEDULE & EQUIPMENT", 110, 80);
@@ -279,19 +292,19 @@
             
             if (surchargeList.length > 0) {
                 doc.setTextColor(195, 32, 38);
-                doc.text(`Surcharges: ${surchargeList.join(', ')}`, 15, 115);
+                doc.text(`Surcharges: ${surchargeList.join(', ')}`, 15, 118);
             }
             doc.setTextColor(40, 40, 40);
 
             doc.setFillColor(245, 245, 245);
-            doc.rect(15, 125, 180, 40, 'F');
+            doc.rect(15, 130, 180, 40, 'F');
             doc.setFontSize(14); doc.setFont("helvetica", "bold");
-            doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 140);
+            doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 145);
             doc.setTextColor(195, 32, 38); doc.setFontSize(30);
-            doc.text(total, 20, 155);
+            doc.text(total, 20, 160);
 
             doc.setTextColor(150, 150, 150); doc.setFontSize(8);
-            doc.text("Frost Transport Solutions Ltd - Professional Haulage & Logistics Specialists.", 15, 185);
+            doc.text("Frost Transport Solutions Ltd - Professional Haulage & Logistics Specialists.", 15, 190);
             doc.save(`Frost_Quote_${pickup}.pdf`);
         }
     </script>
