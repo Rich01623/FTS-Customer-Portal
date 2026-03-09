@@ -122,7 +122,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                     <input type="number" id="palletCount" placeholder="Pallet Quantity" class="clearable border border-slate-300 p-3 outline-none focus:border-red-600" oninput="updateQuote()">
                     <label class="flex items-center justify-between bg-slate-50 p-3 border border-slate-200 cursor-pointer">
-                        <span class="text-xs font-black text-slate-700 uppercase italic text-[10px]">Tail Lift Required? (+£25)</span>
+                        <span class="text-xs font-black text-slate-700 uppercase italic text-[10px]">Tail Lift Required? (+£50)</span>
                         <input type="checkbox" id="tlOpt" class="clearable w-5 h-5 accent-red-600" onchange="updateQuote()">
                     </label>
                 </div>
@@ -183,8 +183,8 @@
         const demurrageRate = 50; 
         const oohSurcharge = 50; 
         const m25Surcharge = 50;
+        const tailLiftSurcharge = 50; // UPDATED to £50
 
-        // Postcode areas inside or touching the M25 ring
         const m25Postcodes = ["E", "EC", "N", "NW", "SE", "SW", "W", "WC", "BR", "CR", "DA", "EN", "HA", "IG", "KT", "RM", "SM", "TW", "UB", "WD"];
 
         let currentMiles = 0;
@@ -220,7 +220,6 @@
 
         function isM25(postcode) {
             if (!postcode) return false;
-            // Get the first one or two letters
             const prefix = postcode.trim().toUpperCase().match(/^[A-Z]{1,2}/);
             return prefix && m25Postcodes.includes(prefix[0]);
         }
@@ -232,7 +231,10 @@
             
             let fees = mileageCost;
             
-            if (document.getElementById('tlOpt').checked) fees += 25;
+            // Tail Lift (Updated logic)
+            if (document.getElementById('tlOpt').checked) fees += tailLiftSurcharge;
+            
+            // Urgent Priority
             if (document.getElementById('urgentOpt').checked) fees += 50;
 
             // Demurrage
@@ -247,7 +249,7 @@
                 if(hour >= 18 || hour < 6) fees += oohSurcharge;
             }
 
-            // NEW: M25 Surcharge
+            // M25 Surcharge
             const pickup = document.getElementById('pickup').value;
             const delivery = document.getElementById('delivery').value;
             if (isM25(pickup) || isM25(delivery)) {
@@ -349,7 +351,7 @@
             doc.text(`Time: ${reqTime}`, 110, 111);
             
             let surchargeList = [];
-            if (document.getElementById('tlOpt').checked) surchargeList.push("Tail Lift (+£25)");
+            if (document.getElementById('tlOpt').checked) surchargeList.push("Tail Lift (+£50)");
             if (document.getElementById('urgentOpt').checked) surchargeList.push("Priority (+£50)");
             
             if(reqTime !== "Not Specified") {
@@ -365,7 +367,6 @@
             
             if (surchargeList.length > 0) {
                 doc.setTextColor(195, 32, 38); doc.setFontSize(9);
-                // Simple wrapping for many surcharges
                 let currentY = 118;
                 surchargeList.forEach((s, i) => {
                     doc.text(s, 110, currentY + (i * 5));
