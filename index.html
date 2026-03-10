@@ -44,7 +44,6 @@
         .vehicle-radio input:checked + div { border-color: var(--frost-red); background-color: #fffafa; outline: 1px solid var(--frost-red); }
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid var(--frost-red); border-radius: 50%; width: 14px; height: 14px; animation: spin 1s linear infinite; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Frost Standard Input height (Tailwind h-12 equivalent) */
         .frost-input { height: 48px; }
     </style>
 </head>
@@ -83,7 +82,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                     <div class="space-y-1">
                         <label class="text-[10px] font-black text-slate-400 uppercase italic">Collection Postcode</label>
-                        <input type="text" id="pickup" placeholder="E.gNG19" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase frost-input" oninput="calculateRealMileage()">
+                        <input type="text" id="pickup" placeholder="E.g. NG19" class="clearable w-full border border-slate-300 p-3 rounded-sm outline-none focus:border-red-600 uppercase frost-input" oninput="calculateRealMileage()">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-black text-slate-400 uppercase italic">Collection Date & Time</label>
@@ -106,7 +105,7 @@
                     </div>
 
                     <div class="space-y-1 md:col-span-2 pt-2">
-                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Route Summary</label>
+                        <label class="text-[10px] font-black text-slate-400 uppercase italic">HGV Route Summary (Incl. 5% Mileage & 25% Time Buffer)</label>
                         <div class="flex gap-2">
                             <div class="bg-slate-100 border border-slate-200 p-3 px-5 flex-grow flex items-center justify-between frost-input">
                                 <span class="text-[10px] font-black text-slate-500 uppercase flex items-center gap-1">Total Distance <div id="mileLoader" class="loader"></div></span>
@@ -197,7 +196,6 @@
     </div>
 
     <script>
-        // Rates & Rules
         const vehicleRates = { "44t": 250, "26t": 185, "18t": 165 };
         const capacities = { "44t": 26, "26t": 14, "18t": 12 };
         const ppm = 3; 
@@ -206,7 +204,6 @@
         const m25Surcharge = 50;
         const tailLiftSurcharge = 50;
         const parkingSurcharge = 50;
-
         const m25Postcodes = ["E", "EC", "N", "NW", "SE", "SW", "W", "WC", "BR", "CR", "DA", "EN", "HA", "IG", "KT", "RM", "SM", "TW", "UB", "WD"];
 
         let currentMiles = 0;
@@ -216,6 +213,7 @@
             const origin = document.getElementById('pickup').value;
             const destination = document.getElementById('delivery').value;
             const loader = document.getElementById('mileLoader');
+
             if (origin.length >= 2 && destination.length >= 2) {
                 loader.style.display = 'inline-block';
                 const service = new google.maps.DistanceMatrixService();
@@ -229,8 +227,19 @@
                     if (status === 'OK') {
                         const element = response.rows[0].elements[0];
                         if (element.status === 'OK') {
-                            currentMiles = Math.round(element.distance.value * 0.000621371);
-                            currentDriveTime = element.duration.text;
+                            // Apply HGV Buffers: +5% Mileage, +25% Drive Time
+                            const rawMiles = element.distance.value * 0.000621371;
+                            currentMiles = Math.round(rawMiles * 1.05);
+                            
+                            const truckSeconds = element.duration.value * 1.25;
+                            const hours = Math.floor(truckSeconds / 3600);
+                            const minutes = Math.floor((truckSeconds % 3600) / 60);
+                            
+                            let timeText = "";
+                            if (hours > 0) timeText += hours + " hr" + (hours > 1 ? "s " : " ");
+                            timeText += minutes + " min" + (minutes !== 1 ? "s" : "");
+                            currentDriveTime = timeText;
+
                             document.getElementById('milesDisplay').innerText = currentMiles + " mi";
                             document.getElementById('timeDisplay').innerText = currentDriveTime;
                             updateQuote();
@@ -250,7 +259,6 @@
             const fleet = document.querySelector('input[name="fleet"]:checked').value;
             const base = vehicleRates[fleet];
             const mileageCost = currentMiles * ppm;
-            
             let fees = mileageCost;
             
             if (document.getElementById('tlOpt').checked) fees += tailLiftSurcharge;
@@ -288,10 +296,7 @@
 
         function confirmBooking() {
             const name = document.getElementById('custName').value;
-            if(!name || name.trim() === "") { 
-                alert("Please enter your name in Section 00!"); 
-                return; 
-            }
+            if(!name || name.trim() === "") { alert("Please enter your name in Section 00!"); return; }
             alert(`Thank you ${name}, our transport planners will call you shortly.`);
         }
 
@@ -311,7 +316,6 @@
         async function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
             const cName = document.getElementById('custName').value || "Valued Customer";
             const cCompany = document.getElementById('custCompany').value || "Not Specified";
             const pickup = document.getElementById('pickup').value || "TBC";
@@ -319,82 +323,34 @@
             const total = document.getElementById('totalDisplay').innerText;
             const vehicleText = document.querySelector('input[name="fleet"]:checked').parentElement.innerText.trim();
             const palletCount = document.getElementById('palletCount').value || 0;
-            
-            const now = new Date();
-            const generationStamp = `${now.toLocaleDateString('en-GB')} at ${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
-
-            const rawDate = document.getElementById('dateInput').value;
-            const rawDelivDate = document.getElementById('deliveryDateInput').value;
-            const cTime = document.getElementById('timeInput').value || "TBC";
-            const dTime = document.getElementById('deliveryTimeInput').value || "TBC";
+            const generationStamp = `${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
 
             doc.setFillColor(195, 32, 38); doc.rect(0, 0, 210, 40, 'F');
             doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.setFont("helvetica", "bold");
             doc.text("FROST TRANSPORT SOLUTIONS", 15, 25);
-            
             doc.setTextColor(40, 40, 40); doc.setFontSize(9);
             doc.text(`Quote Generated: ${generationStamp}`, 140, 50);
             doc.text(`Ref: FTS-${Math.floor(1000 + Math.random() * 9000)}`, 140, 55);
 
             doc.setFontSize(10); doc.setFont("helvetica", "bold");
             doc.text("QUOTATION PREPARED FOR:", 15, 50);
-            doc.setFont("helvetica", "normal");
-            doc.text(`${cName}`, 15, 57);
-            doc.text(`${cCompany}`, 15, 62);
-
+            doc.setFont("helvetica", "normal"); doc.text(`${cName}`, 15, 57); doc.text(`${cCompany}`, 15, 62);
             doc.setDrawColor(220, 220, 220); doc.line(15, 70, 195, 70);
 
-            doc.setFontSize(11); doc.setFont("helvetica", "bold");
-            doc.text("LOGISTICS OVERVIEW", 15, 80);
+            doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("LOGISTICS OVERVIEW", 15, 80);
             doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-            doc.text(`Collection: ${pickup}`, 15, 90);
-            doc.text(`Delivery: ${delivery}`, 15, 97);
-            doc.text(`Road Miles: ${currentMiles} miles`, 15, 104);
-            doc.text(`Est. Drive Time: ${currentDriveTime}`, 15, 111);
+            doc.text(`Collection: ${pickup}`, 15, 90); doc.text(`Delivery: ${delivery}`, 15, 97);
+            doc.text(`HGV Road Miles: ${currentMiles} miles`, 15, 104); doc.text(`Est. HGV Drive Time: ${currentDriveTime}`, 15, 111);
 
-            doc.setFont("helvetica", "bold");
-            doc.text("SCHEDULE & EQUIPMENT", 110, 80);
+            doc.setFont("helvetica", "bold"); doc.text("SCHEDULE & EQUIPMENT", 110, 80);
             doc.setFont("helvetica", "normal");
-            doc.text(`Vehicle: ${vehicleText}`, 110, 90);
-            doc.text(`Pallets: ${palletCount}`, 110, 97);
-            doc.text(`Collection: ${rawDate || 'TBC'} @ ${cTime}`, 110, 104);
-            doc.text(`Delivery: ${rawDelivDate || 'TBC'} @ ${dTime}`, 110, 111);
-            
-            let surchargeList = [];
-            if (document.getElementById('tlOpt').checked) surchargeList.push("Tail Lift (+£50)");
-            if (document.getElementById('urgentOpt').checked) surchargeList.push("Priority (+£50)");
-            
-            [cTime, dTime].forEach(t => {
-                if(t !== "TBC") {
-                    const hr = parseInt(t.split(':')[0]);
-                    if(hr >= 18 || hr < 6) surchargeList.push("Out of Hours (+£50)");
-                }
-            });
-
-            if (isM25(pickup) || isM25(delivery)) surchargeList.push("M25 Surcharge (+£50)");
-            if (rawDate && rawDelivDate && rawDate !== rawDelivDate) surchargeList.push("Secure Parking (+£50)");
-
-            const exLoad = parseInt(document.getElementById('loadTime').value) - 1;
-            const exTip = parseInt(document.getElementById('tipTime').value) - 1;
-            if(exLoad > 0 || exTip > 0) surchargeList.push(`Waiting Time (+£${(exLoad + exTip) * 50})`);
-            
-            if (surchargeList.length > 0) {
-                doc.setTextColor(195, 32, 38); doc.setFontSize(9);
-                let currentY = 118;
-                surchargeList.forEach((s, i) => {
-                    doc.text(s, 110, currentY + (i * 5));
-                });
-            }
-            doc.setTextColor(40, 40, 40);
+            doc.text(`Vehicle: ${vehicleText}`, 110, 90); doc.text(`Pallets: ${palletCount}`, 110, 97);
+            doc.text(`Collection: ${document.getElementById('dateInput').value || 'TBC'} @ ${document.getElementById('timeInput').value || 'TBC'}`, 110, 104);
+            doc.text(`Delivery: ${document.getElementById('deliveryDateInput').value || 'TBC'} @ ${document.getElementById('deliveryTimeInput').value || 'TBC'}`, 110, 111);
 
             doc.setFillColor(245, 245, 245); doc.rect(15, 145, 180, 40, 'F');
-            doc.setFontSize(14); doc.setFont("helvetica", "bold");
-            doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 160);
-            doc.setTextColor(195, 32, 38); doc.setFontSize(30);
-            doc.text(total, 20, 175);
-
-            doc.setTextColor(150, 150, 150); doc.setFontSize(8);
-            doc.text("Frost Transport Solutions Ltd - Professional Haulage & Logistics Specialists.", 15, 210);
+            doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("TOTAL RATE (EXCLUDING VAT)", 20, 160);
+            doc.setTextColor(195, 32, 38); doc.setFontSize(30); doc.text(total, 20, 175);
             doc.save(`Frost_Quote_${pickup}.pdf`);
         }
     </script>
