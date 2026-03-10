@@ -8,64 +8,67 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <script async defer 
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry"></script>
     
     <style>
         :root { --frost-red: #c32026; --frost-bg: #f1f5f9; }
         
         body { 
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Segoe UI', Tahoma, sans-serif; 
             overflow: hidden; 
             min-height: 100vh;
-            /* FULL SCREEN BACKGROUND SETUP */
-            background-image: url('Pic-35-1.png'); /* <--- YOUR IMAGE HERE */
-            background-color: var(--frost-bg); /* Fallback color */
+            
+            /* --- UPDATED FILENAME HERE --- */
+            background-image: url('Pic-35-1.png'); 
+            
+            background-color: #cbd5e1; 
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             background-repeat: no-repeat;
         }
 
-        /* DARK OVERLAY TO PROTECT CONTRAST */
+        /* OVERLAY - Protects readability of the dashboard */
         body::before {
             content: "";
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(241, 245, 249, 0.85); /* Adjust 0.85 higher for more white, lower for more image */
+            background: rgba(241, 245, 249, 0.82); 
             z-index: 0;
         }
 
-        /* FROSTED GLASS CARDS */
+        /* FROSTED GLASS EFFECT */
         .frost-card { 
-            position: relative;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.8); 
+            position: relative; z-index: 10;
+            background: rgba(255, 255, 255, 0.75); 
             border-radius: 6px; 
-            border: 1px solid rgba(203, 213, 225, 0.5); 
+            border: 1px solid rgba(203, 213, 225, 0.6); 
             box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1); 
-            backdrop-filter: blur(8px); /* This makes the truck image blurry behind the cards */
+            backdrop-filter: blur(12px); 
+        }
+
+        /* LOGO BLEND - Removes white box around logo */
+        .frost-logo {
+            height: 65px;
+            mix-blend-mode: multiply; 
+            filter: contrast(110%);
         }
 
         .frost-input { height: 50px; font-size: 1.125rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); }
         .label-text { font-size: 13px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-style: italic; margin-bottom: 5px; display: block; }
         .section-box { height: 360px; display: flex; flex-direction: column; }
         .customer-box { height: 150px; }
-        
         .vehicle-radio input:checked + div { border-color: var(--frost-red); background-color: rgba(255, 250, 250, 0.9); outline: 3px solid var(--frost-red); }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--frost-red); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         header, main { position: relative; z-index: 20; }
     </style>
 </head>
 <body class="p-6">
 
     <header class="max-w-[1600px] mx-auto mb-6 flex justify-between items-center border-b-2 border-slate-400 pb-4">
-        <img src="logo.png" alt="Frost Transport" style="height:65px;">
+        <img src="logo.png" alt="Frost Transport" class="frost-logo">
         <div class="text-right">
             <h1 class="text-slate-900 font-black italic text-2xl uppercase tracking-tighter">Online Booking Portal</h1>
             <span class="text-[12px] font-bold text-red-600 uppercase tracking-widest flex items-center justify-end">
@@ -80,8 +83,8 @@
             <section class="frost-card p-5 border-t-8 border-slate-800 customer-box">
                 <h2 class="text-sm font-black uppercase tracking-[0.2em] mb-4 text-slate-500">00. Customer Details</h2>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><span class="label-text">Contact Name</span><input type="text" id="custName" placeholder="Full Name" class="clearable w-full border border-slate-300 px-4 frost-input rounded outline-none focus:border-red-600"></div>
-                    <div><span class="label-text">Company Name</span><input type="text" id="custCompany" placeholder="Frost Ltd" class="clearable w-full border border-slate-300 px-4 frost-input rounded outline-none focus:border-red-600"></div>
+                    <div><span class="label-text">Contact Name</span><input type="text" id="custName" placeholder="Full Name" class="w-full border border-slate-300 px-4 frost-input rounded outline-none focus:border-red-600"></div>
+                    <div><span class="label-text">Company Name</span><input type="text" id="custCompany" placeholder="Frost Ltd" class="w-full border border-slate-300 px-4 frost-input rounded outline-none focus:border-red-600"></div>
                 </div>
             </section>
 
@@ -89,10 +92,10 @@
                 <div class="flex-grow">
                     <h2 class="text-sm font-black uppercase tracking-[0.2em] mb-4 text-slate-500">01. Route & Timings</h2>
                     <div class="grid grid-cols-2 gap-x-4 gap-y-4 mb-6">
-                        <div><span class="label-text">Collection Postcode</span><input type="text" id="pickup" placeholder="E.g. NG19" oninput="calculateRealMileage()" class="clearable w-full border border-slate-400 px-4 frost-input uppercase rounded outline-none"></div>
-                        <div><span class="label-text">Coll. Date/Time</span><div class="flex gap-1"><input type="date" id="dateInput" class="clearable border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"><input type="time" id="timeInput" class="clearable border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"></div></div>
-                        <div><span class="label-text">Delivery Postcode</span><input type="text" id="delivery" placeholder="E.g. M1" oninput="calculateRealMileage()" class="clearable w-full border border-slate-400 px-4 frost-input uppercase rounded outline-none"></div>
-                        <div><span class="label-text">Deliv. Date/Time</span><div class="flex gap-1"><input type="date" id="deliveryDateInput" class="clearable border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"><input type="time" id="deliveryTimeInput" class="clearable border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"></div></div>
+                        <div><span class="label-text">Collection Postcode</span><input type="text" id="pickup" placeholder="E.g. NG19" oninput="calculateRealMileage()" class="w-full border border-slate-400 px-4 frost-input uppercase rounded outline-none"></div>
+                        <div><span class="label-text">Coll. Date/Time</span><div class="flex gap-1"><input type="date" id="dateInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"><input type="time" id="timeInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"></div></div>
+                        <div><span class="label-text">Delivery Postcode</span><input type="text" id="delivery" placeholder="E.g. M1" oninput="calculateRealMileage()" class="w-full border border-slate-400 px-4 frost-input uppercase rounded outline-none"></div>
+                        <div><span class="label-text">Deliv. Date/Time</span><div class="flex gap-1"><input type="date" id="deliveryDateInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"><input type="time" id="deliveryTimeInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"></div></div>
                     </div>
                 </div>
                 <div class="flex gap-4 bg-white/50 p-4 border-2 border-dashed border-slate-400 mt-auto rounded">
@@ -118,24 +121,24 @@
                     <div class="grid grid-cols-3 gap-4 mb-8">
                         <div>
                             <span class="label-text">Total Pallets</span>
-                            <input type="number" id="palletCount" oninput="updateQuote()" placeholder="Qty" class="clearable w-full border border-slate-400 px-4 frost-input rounded outline-none focus:border-red-600">
+                            <input type="number" id="palletCount" oninput="updateQuote()" placeholder="Qty" class="w-full border border-slate-400 px-4 frost-input rounded outline-none focus:border-red-600">
                         </div>
                         <div class="pt-[24px]">
                             <label class="flex justify-center items-center bg-white/60 border-2 border-slate-300 cursor-pointer frost-input rounded w-full">
                                 <span class="text-[11px] font-black uppercase italic mr-2">Tail Lift</span>
-                                <input type="checkbox" id="tlOpt" onchange="updateQuote()" class="clearable w-5 h-5 accent-red-600">
+                                <input type="checkbox" id="tlOpt" onchange="updateQuote()" class="w-5 h-5 accent-red-600">
                             </label>
                         </div>
                         <div class="pt-[24px]">
                             <label class="flex justify-center items-center bg-white/60 border-2 border-slate-300 cursor-pointer frost-input rounded w-full">
                                 <span class="text-[11px] font-black uppercase italic mr-2">Priority</span>
-                                <input type="checkbox" id="urgentOpt" onchange="updateQuote()" class="clearable w-5 h-5 accent-red-600">
+                                <input type="checkbox" id="urgentOpt" onchange="updateQuote()" class="w-5 h-5 accent-red-600">
                             </label>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><span class="label-text">Loading Window</span><select id="loadTime" onchange="updateQuote()" class="clearable w-full border border-slate-400 px-4 frost-input rounded bg-white/90"><option value="1">1hr (Included)</option><option value="2">2hrs (+£50)</option></select></div>
-                        <div><span class="label-text">Tipping Window</span><select id="tipTime" onchange="updateQuote()" class="clearable w-full border border-slate-400 px-4 frost-input rounded bg-white/90"><option value="1">1hr (Included)</option><option value="2">2hrs (+£50)</option></select></div>
+                        <div><span class="label-text">Loading Window</span><select id="loadTime" onchange="updateQuote()" class="w-full border border-slate-400 px-4 frost-input rounded bg-white/90"><option value="1">1hr (Included)</option><option value="2">2hrs (+£50)</option></select></div>
+                        <div><span class="label-text">Tipping Window</span><select id="tipTime" onchange="updateQuote()" class="w-full border border-slate-400 px-4 frost-input rounded bg-white/90"><option value="1">1hr (Included)</option><option value="2">2hrs (+£50)</option></select></div>
                     </div>
                 </div>
                 <div id="capacityWarning" class="hidden p-3 bg-red-100/90 text-red-700 text-[11px] font-black uppercase text-center border-2 border-red-300 rounded mt-auto">⚠️ Load Exceeds Vehicle Capacity</div>
@@ -164,7 +167,6 @@
     </main>
 
     <script>
-        // LOGIC REMAINS IDENTICAL TO PREVIOUS VERSION
         const vehicleRates = { "44t": 250, "26t": 185, "18t": 165 };
         const capacities = { "44t": 26, "26t": 14, "18t": 12 };
         const ppm = 3; 
@@ -220,9 +222,11 @@
             fees += (Math.max(0, parseInt(document.getElementById('loadTime').value) - 1)) * demurrageRate;
             fees += (Math.max(0, parseInt(document.getElementById('tipTime').value) - 1)) * demurrageRate;
             if (isM25(document.getElementById('pickup').value) || isM25(document.getElementById('delivery').value)) fees += m25Surcharge;
+            
             document.getElementById('basePriceDisplay').innerText = '£' + base.toFixed(2);
             document.getElementById('feeDisplay').innerText = '£' + fees.toFixed(2);
             document.getElementById('totalDisplay').innerText = '£' + (base + fees).toFixed(2);
+
             const pallets = parseInt(document.getElementById('palletCount').value) || 0;
             const warning = document.getElementById('capacityWarning');
             (pallets > capacities[fleet]) ? warning.classList.remove('hidden') : warning.classList.add('hidden');
@@ -231,7 +235,7 @@
         function confirmBooking() {
             const name = document.getElementById('custName').value;
             if(!name) { alert("Enter Contact Name"); return; }
-            alert(`Booking confirmed for ${name}. Our transport team will call you shortly.`);
+            alert(`Booking confirmed for ${name}.`);
         }
 
         async function generatePDF() {
