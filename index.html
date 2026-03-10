@@ -4,14 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frost Transport | Client Portal</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry&callback=initMap"></script>
+    
     <style>
         :root { --frost-red: #c32026; --frost-grey: #1e293b; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background-image: url('Pic-35-1.png'); background-size: cover; background-attachment: fixed; }
         body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.9); z-index: 0; }
+        
         #authOverlay { position: fixed; inset: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); z-index: 100; display: none; align-items: center; justify-content: center; }
         .frost-card { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.85); border-radius: 6px; border: 1px solid rgba(203, 213, 225, 0.6); padding: 1.25rem; box-shadow: 0 10px 15px rgba(0,0,0,0.05); }
         .border-frost-dark { border-top: 8px solid var(--frost-grey); }
@@ -26,7 +29,7 @@
 <body class="p-6">
 
     <div id="authOverlay">
-        <div class="bg-white p-8 rounded shadow-2xl w-[420px] border-top border-t-8 border-red-600">
+        <div class="bg-white p-8 rounded shadow-2xl w-[420px] border-t-8 border-red-600">
             <h2 class="text-2xl font-black italic mb-6 text-center text-slate-900">FROST <span class="text-red-600">PORTAL</span></h2>
             <div id="loginForm" class="space-y-4">
                 <input type="email" id="email" placeholder="Email Address" class="frost-input">
@@ -72,14 +75,14 @@
             <section class="frost-card border-frost-dark h-[370px] flex flex-col">
                 <h3 class="label-text text-slate-400">01. Route & Timings</h3>
                 <div class="grid grid-cols-2 gap-4 mt-2">
-                    <div><span class="label-text">Collection Postcode</span><input type="text" id="pickup" oninput="calculate()" class="frost-input uppercase"></div>
+                    <div><span class="label-text">Collection Postcode</span><input type="text" id="pickup" class="frost-input uppercase"></div>
                     <div><span class="label-text">Coll. Date & Time</span><div class="flex gap-1"><input type="date" id="collDate" class="frost-input text-[10px] w-1/2"><input type="time" id="collTime" class="frost-input text-[10px] w-1/2"></div></div>
-                    <div><span class="label-text">Delivery Postcode</span><input type="text" id="delivery" oninput="calculate()" class="frost-input uppercase"></div>
+                    <div><span class="label-text">Delivery Postcode</span><input type="text" id="delivery" class="frost-input uppercase"></div>
                     <div><span class="label-text">Deliv. Date & Time</span><div class="flex gap-1"><input type="date" id="delDate" class="frost-input text-[10px] w-1/2"><input type="time" id="delTime" class="frost-input text-[10px] w-1/2"></div></div>
                 </div>
                 <div class="bg-slate-100 p-4 rounded border-2 border-dashed border-slate-300 grid grid-cols-2 mt-auto">
-                    <div class="text-center border-r border-slate-300"><span class="label-text">Est. Miles</span><div id="mDisp" class="text-3xl font-black italic">0</div></div>
-                    <div class="text-center"><span class="label-text">Drive Time</span><div id="tDisp" class="text-3xl font-black italic">--</div></div>
+                    <div class="text-center border-r border-slate-300"><span class="label-text">Est. Miles</span><div id="mDisp" class="text-3xl font-black italic text-slate-900">0</div></div>
+                    <div class="text-center"><span class="label-text">Drive Time</span><div id="tDisp" class="text-3xl font-black italic text-slate-900">--</div></div>
                 </div>
             </section>
         </div>
@@ -117,7 +120,7 @@
                     </div>
                     <div class="mt-12 text-center">
                         <span class="label-text text-slate-500">Total (Ex VAT)</span>
-                        <div id="totalDisp" class="text-4xl font-black italic tracking-tighter mt-1">£250.00</div>
+                        <div id="totalDisp" class="text-4xl font-black italic tracking-tighter mt-1 text-white">£250.00</div>
                     </div>
                 </div>
                 <div class="space-y-3">
@@ -132,15 +135,65 @@
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
 
+        let miles = 0;
+        const vRates = { "44t": 250, "26t": 185, "18t": 165 };
+
+        // AUTH & SESSION
         window.onload = async () => {
             const { data: { session } } = await sb.auth.getSession();
             if (session?.user) setupUser(session.user);
             else document.getElementById('authOverlay').style.display = 'flex';
+            
+            // Re-bind listeners after load
+            bindInputListeners();
         };
 
-        function toggleAuth(reg) {
-            document.getElementById('loginForm').classList.toggle('hidden', reg);
-            document.getElementById('regForm').classList.toggle('hidden', !reg);
+        function bindInputListeners() {
+            const p = document.getElementById('pickup');
+            const d = document.getElementById('delivery');
+            if(p && d) {
+                p.addEventListener('input', calculate);
+                d.addEventListener('input', calculate);
+            }
+        }
+
+        function initMap() { console.log("Google Maps Ready."); }
+
+        function calculate() {
+            const p = document.getElementById('pickup').value.trim();
+            const d = document.getElementById('delivery').value.trim();
+            if (p.length >= 3 && d.length >= 3) {
+                const svc = new google.maps.DistanceMatrixService();
+                svc.getDistanceMatrix({
+                    origins: [p],
+                    destinations: [d],
+                    travelMode: google.maps.TravelMode.DRIVING,
+                    unitSystem: google.maps.UnitSystem.IMPERIAL
+                }, (response, status) => {
+                    if (status === 'OK') {
+                        const results = response.rows[0].elements[0];
+                        if (results.status === "OK") {
+                            miles = Math.round((results.distance.value * 0.000621371) * 1.05);
+                            document.getElementById('mDisp').innerText = miles;
+                            document.getElementById('tDisp').innerText = Math.round(results.duration.value / 60) + "m";
+                            update();
+                        }
+                    }
+                });
+            }
+        }
+
+        function update() {
+            const fleet = document.querySelector('input[name="fleet"]:checked').value;
+            let extras = (miles * 3.10);
+            if (document.getElementById('tl').checked) extras += 50;
+            if (document.getElementById('urgent').checked) extras += 50;
+            extras += parseFloat(document.getElementById('loadTime').value || 0);
+            extras += parseFloat(document.getElementById('tipTime').value || 0);
+            const total = vRates[fleet] + extras;
+            document.getElementById('baseRateDisp').innerText = '£' + vRates[fleet].toFixed(2);
+            document.getElementById('extraDisp').innerText = '£' + extras.toFixed(2);
+            document.getElementById('totalDisp').innerText = '£' + total.toFixed(2);
         }
 
         async function handleAuth(type) {
@@ -169,39 +222,6 @@
             document.getElementById('custEmail').value = user.email;
         }
 
-        async function logout() { await sb.auth.signOut(); localStorage.clear(); location.reload(); }
-
-        const vRates = { "44t": 250, "26t": 185, "18t": 165 };
-        let miles = 0;
-
-        function calculate() {
-            const p = document.getElementById('pickup').value;
-            const d = document.getElementById('delivery').value;
-            if (p.length >= 3 && d.length >= 3) {
-                new google.maps.DistanceMatrixService().getDistanceMatrix({ origins:[p], destinations:[d], travelMode:'DRIVING', unitSystem:google.maps.UnitSystem.IMPERIAL }, (res, stat) => {
-                    if (stat === 'OK' && res.rows[0].elements[0].status === 'OK') {
-                        miles = Math.round((res.rows[0].elements[0].distance.value * 0.000621371) * 1.05);
-                        document.getElementById('mDisp').innerText = miles;
-                        document.getElementById('tDisp').innerText = Math.round(res.rows[0].elements[0].duration.value / 60) + "m";
-                        update();
-                    }
-                });
-            }
-        }
-
-        function update() {
-            const fleet = document.querySelector('input[name="fleet"]:checked').value;
-            let extras = (miles * 3.10);
-            if (document.getElementById('tl').checked) extras += 50;
-            if (document.getElementById('urgent').checked) extras += 50;
-            extras += parseFloat(document.getElementById('loadTime').value);
-            extras += parseFloat(document.getElementById('tipTime').value);
-            const total = vRates[fleet] + extras;
-            document.getElementById('baseRateDisp').innerText = '£' + vRates[fleet].toFixed(2);
-            document.getElementById('extraDisp').innerText = '£' + extras.toFixed(2);
-            document.getElementById('totalDisp').innerText = '£' + total.toFixed(2);
-        }
-
         async function saveJob() {
             const { data: { user } } = await sb.auth.getUser();
             const btn = document.getElementById('confirmBtn');
@@ -220,6 +240,13 @@
             if (error) alert(error.message);
             else { btn.innerText = "SUCCESSFUL"; btn.classList.add('btn-success'); setTimeout(() => { btn.innerText = "CONFIRM JOB"; btn.classList.remove('btn-success'); }, 3000); }
         }
+
+        function toggleAuth(reg) {
+            document.getElementById('loginForm').classList.toggle('hidden', reg);
+            document.getElementById('regForm').classList.toggle('hidden', !reg);
+        }
+
+        async function logout() { await sb.auth.signOut(); localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
