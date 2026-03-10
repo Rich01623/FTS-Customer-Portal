@@ -3,246 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frost Transport | Booking Dashboard</title>
+    <title>Frost Transport | Secure Booking Portal</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry"></script>
     
     <style>
-        :root { --frost-red: #c32026; --frost-bg: #f1f5f9; }
+        :root { --frost-red: #c32026; --frost-grey: #1e293b; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; background-image: url('Pic-35-1.png'); background-size: cover; background-attachment: fixed; }
+        body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.88); z-index: 0; }
         
-        body { 
-            margin: 0; padding: 0;
-            font-family: 'Segoe UI', Tahoma, sans-serif; 
-            overflow: hidden; 
-            min-height: 100vh;
-            
-            /* --- UPDATED FILENAME HERE --- */
-            background-image: url('Pic-35-1.png'); 
-            
-            background-color: #cbd5e1; 
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
-        }
-
-        /* OVERLAY - Protects readability of the dashboard */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(241, 245, 249, 0.82); 
-            z-index: 0;
-        }
-
-        /* FROSTED GLASS EFFECT */
-        .frost-card { 
-            position: relative; z-index: 10;
-            background: rgba(255, 255, 255, 0.75); 
-            border-radius: 6px; 
-            border: 1px solid rgba(203, 213, 225, 0.6); 
-            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1); 
-            backdrop-filter: blur(12px); 
-        }
-
-        /* LOGO BLEND - Removes white box around logo */
-        .frost-logo {
-            height: 65px;
-            mix-blend-mode: multiply; 
-            filter: contrast(110%);
-        }
-
-        .frost-input { height: 50px; font-size: 1.125rem; font-weight: 500; background: rgba(255, 255, 255, 0.9); }
-        .label-text { font-size: 13px; font-weight: 900; color: #1e293b; text-transform: uppercase; font-style: italic; margin-bottom: 5px; display: block; }
-        .section-box { height: 360px; display: flex; flex-direction: column; }
-        .customer-box { height: 150px; }
-        .vehicle-radio input:checked + div { border-color: var(--frost-red); background-color: rgba(255, 250, 250, 0.9); outline: 3px solid var(--frost-red); }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--frost-red); border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #authOverlay { position: fixed; inset: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: white; width: 400px; border-radius: 8px; border-top: 8px solid var(--frost-red); box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
+        
+        .frost-card { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.85); border-radius: 6px; border: 1px solid rgba(203, 213, 225, 0.6); padding: 1.25rem; box-shadow: 0 10px 15px rgba(0,0,0,0.05); }
+        .border-frost-dark { border-top: 8px solid var(--frost-grey); }
+        .frost-input { height: 45px; border: 1px solid #cbd5e1; padding: 0 0.75rem; border-radius: 4px; width: 100%; outline: none; background: white; font-size: 0.9rem; }
+        .frost-input:focus { border-color: var(--frost-red); }
+        .label-text { font-size: 11px; font-weight: 900; color: #475569; text-transform: uppercase; margin-bottom: 4px; display: block; }
         header, main { position: relative; z-index: 20; }
+        .btn-primary { background: var(--frost-red); color: white; font-weight: 900; text-transform: uppercase; transition: all 0.2s; }
+        .btn-primary:hover { background: #a51a1f; }
     </style>
 </head>
 <body class="p-6">
 
-    <header class="max-w-[1600px] mx-auto mb-6 flex justify-between items-center border-b-2 border-slate-400 pb-4">
-        <img src="logo.png" alt="Frost Transport" class="frost-logo">
+    <div id="authOverlay">
+        <div class="auth-card p-8">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-black italic">FROST <span class="text-red-600">PORTAL</span></h2>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Secure Client Access</p>
+            </div>
+            
+            <div id="loginForm" class="space-y-4">
+                <input type="email" id="email" placeholder="Email Address" class="frost-input">
+                <input type="password" id="password" placeholder="Password" class="frost-input">
+                <button onclick="handleAuth('login')" class="w-full btn-primary py-3 rounded">Login</button>
+                <p class="text-center text-[10px] font-bold text-slate-500 cursor-pointer" onclick="toggleAuth(true)">REQUEST ACCESS / REGISTER</p>
+            </div>
+
+            <div id="regForm" class="hidden space-y-4">
+                <input type="text" id="regName" placeholder="Your Name" class="frost-input">
+                <input type="text" id="regCompany" placeholder="Company Name" class="frost-input">
+                <input type="email" id="regEmail" placeholder="Email Address" class="frost-input">
+                <input type="password" id="regPass" placeholder="Set Password" class="frost-input">
+                <button onclick="handleAuth('register')" class="w-full bg-slate-900 text-white font-black py-3 rounded uppercase">Create Account</button>
+                <p class="text-center text-[10px] font-bold text-slate-500 cursor-pointer" onclick="toggleAuth(false)">BACK TO LOGIN</p>
+            </div>
+        </div>
+    </div>
+
+    <header class="max-w-[1600px] mx-auto mb-6 flex justify-between items-end border-b-2 border-slate-300 pb-4">
+        <div>
+            <h1 class="text-3xl font-black italic tracking-tighter text-slate-900">FROST <span class="text-red-600">TRANSPORT</span></h1>
+            <p class="text-[10px] font-bold text-slate-500 uppercase">Haulage & Logistics Rate Engine</p>
+        </div>
         <div class="text-right">
-            <h1 class="text-slate-900 font-black italic text-2xl uppercase tracking-tighter">Online Booking Portal</h1>
-            <span class="text-[12px] font-bold text-red-600 uppercase tracking-widest flex items-center justify-end">
-                <span class="w-2.5 h-2.5 bg-red-600 rounded-full mr-2 animate-pulse"></span> Live Rate Engine Active
-            </span>
+            <div id="userBadge" class="text-xs font-black bg-white px-3 py-1 rounded border mb-2 uppercase tracking-tighter">Not Logged In</div>
+            <button onclick="logout()" class="text-[9px] font-bold text-red-600 uppercase border border-red-600 px-2 rounded hover:bg-red-50">Logout</button>
         </div>
     </header>
 
     <main class="max-w-[1600px] mx-auto grid grid-cols-12 gap-6">
         
-        <div class="col-span-4 space-y-6">
-            <section class="frost-card p-5 border-t-8 border-slate-800 customer-box">
-                <h2 class="text-sm font-black uppercase tracking-[0.2em] mb-4 text-slate-500">00. Customer Details</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <div><span class="label-text">Contact Name</span><input type="text" id="custName" placeholder="Full Name" class="w-full border border-slate-300 px-4 frost-input rounded outline-none focus:border-red-600"></div>
-                    <div><span class="label-text">Company Name</span><input type="text" id="custCompany" placeholder="Frost Ltd" class="w-full border border-slate-300 px-4 frost-input rounded outline-none focus:border-red-600"></div>
+        <div class="col-span-5 space-y-6">
+            <section class="frost-card border-frost-dark h-[150px]">
+                <h3 class="label-text text-slate-400">00. Customer Details</h3>
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div><span class="label-text">Contact Name</span><input type="text" id="custName" class="frost-input bg-slate-50" readonly></div>
+                    <div><span class="label-text">Company Name</span><input type="text" id="custCompany" class="frost-input bg-slate-50" readonly></div>
                 </div>
             </section>
 
-            <section class="frost-card p-5 border-t-8 border-red-600 section-box">
-                <div class="flex-grow">
-                    <h2 class="text-sm font-black uppercase tracking-[0.2em] mb-4 text-slate-500">01. Route & Timings</h2>
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-4 mb-6">
-                        <div><span class="label-text">Collection Postcode</span><input type="text" id="pickup" placeholder="E.g. NG19" oninput="calculateRealMileage()" class="w-full border border-slate-400 px-4 frost-input uppercase rounded outline-none"></div>
-                        <div><span class="label-text">Coll. Date/Time</span><div class="flex gap-1"><input type="date" id="dateInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"><input type="time" id="timeInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"></div></div>
-                        <div><span class="label-text">Delivery Postcode</span><input type="text" id="delivery" placeholder="E.g. M1" oninput="calculateRealMileage()" class="w-full border border-slate-400 px-4 frost-input uppercase rounded outline-none"></div>
-                        <div><span class="label-text">Deliv. Date/Time</span><div class="flex gap-1"><input type="date" id="deliveryDateInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"><input type="time" id="deliveryTimeInput" class="border border-slate-300 px-2 text-sm w-1/2 frost-input rounded"></div></div>
-                    </div>
+            <section class="frost-card border-frost-dark h-[370px] flex flex-col">
+                <h3 class="label-text text-slate-400">01. Route & Timings</h3>
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div><span class="label-text">Collection Postcode</span><input type="text" id="pickup" oninput="calculate()" class="frost-input uppercase"></div>
+                    <div><span class="label-text">Coll. Date & Time</span><div class="flex gap-1"><input type="date" class="frost-input text-[10px] w-1/2"><input type="time" class="frost-input text-[10px] w-1/2"></div></div>
+                    <div><span class="label-text">Delivery Postcode</span><input type="text" id="delivery" oninput="calculate()" class="frost-input uppercase"></div>
+                    <div><span class="label-text">Deliv. Date & Time</span><div class="flex gap-1"><input type="date" class="frost-input text-[10px] w-1/2"><input type="time" class="frost-input text-[10px] w-1/2"></div></div>
                 </div>
-                <div class="flex gap-4 bg-white/50 p-4 border-2 border-dashed border-slate-400 mt-auto rounded">
-                    <div class="w-1/2"><span class="label-text flex items-center gap-2 text-slate-700">HGV Truck Miles <div id="mileLoader" class="loader"></div></span><span id="milesDisplay" class="text-3xl font-black italic text-slate-900">0 mi</span></div>
-                    <div class="w-1/2 border-l-2 border-slate-400 pl-4"><span class="label-text text-slate-700">HGV Drive Time</span><span id="timeDisplay" class="text-3xl font-black italic text-slate-900">-- mins</span></div>
+                <div class="bg-slate-100 p-4 rounded border-2 border-dashed border-slate-300 grid grid-cols-2 mt-auto">
+                    <div class="text-center border-r border-slate-300"><span class="label-text">Est. Miles</span><div id="mDisp" class="text-3xl font-black italic">0</div></div>
+                    <div class="text-center"><span class="label-text">Drive Time</span><div id="tDisp" class="text-3xl font-black italic">--</div></div>
                 </div>
             </section>
         </div>
 
         <div class="col-span-5 space-y-6">
-            <section class="frost-card p-5 border-t-8 border-red-600 customer-box">
-                <h2 class="text-sm font-black uppercase tracking-[0.2em] mb-4 text-slate-500">02. Select Vehicle Type</h2>
-                <div class="grid grid-cols-3 gap-3">
-                    <label class="cursor-pointer vehicle-radio"><input type="radio" name="fleet" value="44t" id="v_44t" class="hidden" checked onchange="updateQuote()"><div class="border-2 border-slate-300 p-2 text-center rounded bg-white/60"><i class="fa-solid fa-truck-moving text-slate-400 text-2xl mb-1"></i><span class="block text-[12px] font-black uppercase">44t Artic</span></div></label>
-                    <label class="cursor-pointer vehicle-radio"><input type="radio" name="fleet" value="26t" id="v_26t" class="hidden" onchange="updateQuote()"><div class="border-2 border-slate-300 p-2 text-center rounded bg-white/60"><i class="fa-solid fa-truck text-slate-400 text-2xl mb-1"></i><span class="block text-[12px] font-black uppercase">26t Rigid</span></div></label>
-                    <label class="cursor-pointer vehicle-radio"><input type="radio" name="fleet" value="18t" id="v_18t" class="hidden" onchange="updateQuote()"><div class="border-2 border-slate-300 p-2 text-center rounded bg-white/60"><i class="fa-solid fa-truck-front text-slate-400 text-2xl mb-1"></i><span class="block text-[12px] font-black uppercase">18t Rigid</span></div></label>
+            <section class="frost-card border-frost-dark h-[150px]">
+                <h3 class="label-text text-slate-400">02. Vehicle Selection</h3>
+                <div class="grid grid-cols-3 gap-2 mt-2">
+                    <label class="cursor-pointer"><input type="radio" name="fleet" value="44t" class="hidden" checked onchange="update()"><div class="border-2 p-3 text-center rounded font-bold text-sm bg-white hover:border-red-600 transition-colors uppercase italic">44t Artic</div></label>
+                    <label class="cursor-pointer"><input type="radio" name="fleet" value="26t" class="hidden" onchange="update()"><div class="border-2 p-3 text-center rounded font-bold text-sm bg-white hover:border-red-600 transition-colors uppercase italic">26t Rigid</div></label>
+                    <label class="cursor-pointer"><input type="radio" name="fleet" value="18t" class="hidden" onchange="update()"><div class="border-2 p-3 text-center rounded font-bold text-sm bg-white hover:border-red-600 transition-colors uppercase italic">18t Rigid</div></label>
                 </div>
             </section>
 
-            <section class="frost-card p-5 border-t-8 border-red-600 section-box">
-                <div class="flex-grow">
-                    <h2 class="text-sm font-black uppercase tracking-[0.2em] mb-4 text-slate-500">03. Load Details & Options</h2>
-                    <div class="grid grid-cols-3 gap-4 mb-8">
-                        <div>
-                            <span class="label-text">Total Pallets</span>
-                            <input type="number" id="palletCount" oninput="updateQuote()" placeholder="Qty" class="w-full border border-slate-400 px-4 frost-input rounded outline-none focus:border-red-600">
-                        </div>
-                        <div class="pt-[24px]">
-                            <label class="flex justify-center items-center bg-white/60 border-2 border-slate-300 cursor-pointer frost-input rounded w-full">
-                                <span class="text-[11px] font-black uppercase italic mr-2">Tail Lift</span>
-                                <input type="checkbox" id="tlOpt" onchange="updateQuote()" class="w-5 h-5 accent-red-600">
-                            </label>
-                        </div>
-                        <div class="pt-[24px]">
-                            <label class="flex justify-center items-center bg-white/60 border-2 border-slate-300 cursor-pointer frost-input rounded w-full">
-                                <span class="text-[11px] font-black uppercase italic mr-2">Priority</span>
-                                <input type="checkbox" id="urgentOpt" onchange="updateQuote()" class="w-5 h-5 accent-red-600">
-                            </label>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><span class="label-text">Loading Window</span><select id="loadTime" onchange="updateQuote()" class="w-full border border-slate-400 px-4 frost-input rounded bg-white/90"><option value="1">1hr (Included)</option><option value="2">2hrs (+£50)</option></select></div>
-                        <div><span class="label-text">Tipping Window</span><select id="tipTime" onchange="updateQuote()" class="w-full border border-slate-400 px-4 frost-input rounded bg-white/90"><option value="1">1hr (Included)</option><option value="2">2hrs (+£50)</option></select></div>
-                    </div>
+            <section class="frost-card border-frost-dark h-[370px]">
+                <h3 class="label-text text-slate-400">03. Load Details & Windows</h3>
+                <div class="grid grid-cols-2 gap-4 mt-2 mb-6">
+                    <div><span class="label-text">Loading Window</span><select id="loadTime" onchange="update()" class="frost-input"><option value="0">1hr (Included)</option><option value="50">2hrs (+£50)</option></select></div>
+                    <div><span class="label-text">Tipping Window</span><select id="tipTime" onchange="update()" class="frost-input"><option value="0">1hr (Included)</option><option value="50">2hrs (+£50)</option></select></div>
                 </div>
-                <div id="capacityWarning" class="hidden p-3 bg-red-100/90 text-red-700 text-[11px] font-black uppercase text-center border-2 border-red-300 rounded mt-auto">⚠️ Load Exceeds Vehicle Capacity</div>
+                <div class="space-y-3">
+                    <label class="flex items-center justify-between p-4 bg-white border rounded cursor-pointer hover:bg-slate-50"><span class="font-bold text-xs uppercase italic">Tail Lift Delivery</span><input type="checkbox" id="tl" onchange="update()" class="w-5 h-5 accent-red-600"></label>
+                    <label class="flex items-center justify-between p-4 bg-white border rounded cursor-pointer hover:bg-slate-50"><span class="font-bold text-xs uppercase italic">Priority Load (Urgent)</span><input type="checkbox" id="urgent" onchange="update()" class="w-5 h-5 accent-red-600"></label>
+                </div>
             </section>
         </div>
 
-        <div class="col-span-3">
-            <div class="bg-slate-900/95 text-white p-6 h-[534px] flex flex-col justify-between rounded shadow-2xl border-4 border-slate-800 backdrop-blur-md">
+        <div class="col-span-2">
+            <div class="bg-slate-900 text-white p-5 h-[544px] rounded-lg shadow-2xl flex flex-col justify-between border-4 border-slate-800">
                 <div>
-                    <h3 class="text-base font-black italic uppercase text-red-500 mb-6 border-b border-slate-700 pb-2 flex justify-between">Instant Rate <i class="fa-solid fa-bolt"></i></h3>
-                    <div class="space-y-5 text-base font-bold">
-                        <div class="flex justify-between"><span class="text-slate-400 uppercase text-[11px]">Base Vehicle Rate</span><span id="basePriceDisplay" class="text-xl">£250.00</span></div>
-                        <div class="flex justify-between"><span class="text-slate-400 uppercase text-[11px]">Miles & Fees</span><span id="feeDisplay" class="text-xl">£0.00</span></div>
-                        <div class="pt-8 border-t border-slate-700 mt-8">
-                            <span class="text-[12px] uppercase text-slate-500 font-black tracking-widest">Total Investment (Ex VAT)</span>
-                            <div id="totalDisplay" class="text-6xl text-white font-black italic mt-2 tracking-tighter">£250.00</div>
-                        </div>
+                    <h2 class="text-red-500 font-black italic uppercase tracking-widest text-[10px] mb-8 border-b border-slate-700 pb-2 flex justify-between">Rate Engine <i class="fa-solid fa-bolt"></i></h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between text-[10px] font-bold uppercase text-slate-400"><span>Vehicle Base</span><span id="baseRateDisp">£250.00</span></div>
+                        <div class="flex justify-between text-[10px] font-bold uppercase text-slate-400"><span>Fees/Extras</span><span id="extraDisp">£0.00</span></div>
+                    </div>
+                    <div class="mt-12">
+                        <span class="label-text text-slate-500">Total (Ex VAT)</span>
+                        <div id="totalDisp" class="text-4xl font-black italic tracking-tighter mt-1 text-white">£250.00</div>
                     </div>
                 </div>
-                <div class="space-y-4">
-                    <button onclick="confirmBooking()" class="w-full bg-red-600 hover:bg-red-700 text-white py-6 font-black uppercase text-lg transition-all rounded shadow-xl active:scale-95">Confirm Job</button>
-                    <button onclick="generatePDF()" class="w-full bg-slate-800 border-2 border-slate-700 hover:bg-white hover:text-slate-900 text-white py-3 font-black uppercase text-[11px] transition-all rounded">Download Official Quote</button>
+                <div class="space-y-3">
+                    <button onclick="saveJob()" class="w-full btn-primary py-5 rounded-lg font-black text-sm shadow-lg active:scale-95 transition-transform">Confirm Job</button>
+                    <button onclick="generatePDF()" class="w-full bg-slate-800 py-3 rounded font-black text-[9px] uppercase border border-slate-700 hover:bg-white hover:text-slate-900 transition-all">Download Quote</button>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        const vehicleRates = { "44t": 250, "26t": 185, "18t": 165 };
-        const capacities = { "44t": 26, "26t": 14, "18t": 12 };
-        const ppm = 3; 
-        const demurrageRate = 50; 
-        const m25Surcharge = 50;
-        const tailLiftSurcharge = 50;
-        const m25Postcodes = ["E", "EC", "N", "NW", "SE", "SW", "W", "WC", "BR", "CR", "DA", "EN", "HA", "IG", "KT", "RM", "SM", "TW", "UB", "WD"];
+        const _URL = "https://tdrzytgiqvdulityqttr.supabase.co";
+        const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
+        const sb = supabase.createClient(_URL, _KEY);
 
-        let currentMiles = 0;
-        let currentDriveTime = "-- mins";
+        function toggleAuth(reg) {
+            document.getElementById('loginForm').classList.toggle('hidden', reg);
+            document.getElementById('regForm').classList.toggle('hidden', !reg);
+        }
 
-        function calculateRealMileage() {
-            const origin = document.getElementById('pickup').value;
-            const destination = document.getElementById('delivery').value;
-            const loader = document.getElementById('mileLoader');
-            if (origin.length >= 2 && destination.length >= 2) {
-                loader.style.display = 'inline-block';
-                const service = new google.maps.DistanceMatrixService();
-                service.getDistanceMatrix({
-                    origins: [origin], destinations: [destination],
-                    travelMode: 'DRIVING', unitSystem: google.maps.UnitSystem.IMPERIAL,
-                }, (response, status) => {
-                    loader.style.display = 'none';
-                    if (status === 'OK') {
-                        const element = response.rows[0].elements[0];
-                        if (element.status === 'OK') {
-                            currentMiles = Math.round((element.distance.value * 0.000621371) * 1.05);
-                            const truckSeconds = element.duration.value * 1.25;
-                            const h = Math.floor(truckSeconds / 3600);
-                            const m = Math.floor((truckSeconds % 3600) / 60);
-                            currentDriveTime = (h > 0 ? h + "hr " : "") + m + "min";
-                            document.getElementById('milesDisplay').innerText = currentMiles + " mi";
-                            document.getElementById('timeDisplay').innerText = currentDriveTime;
-                            updateQuote();
-                        }
+        async function handleAuth(type) {
+            if (type === 'register') {
+                const { data, error } = await sb.auth.signUp({
+                    email: document.getElementById('regEmail').value,
+                    password: document.getElementById('regPass').value,
+                    options: { data: { full_name: document.getElementById('regName').value, company: document.getElementById('regCompany').value } }
+                });
+                if (error) alert(error.message); else alert("Registration successful! Check your email or try logging in.");
+            } else {
+                const { data, error } = await sb.auth.signInWithPassword({
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value
+                });
+                if (error) alert(error.message); else setupUser(data.user);
+            }
+        }
+
+        function setupUser(user) {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('userBadge').innerText = user.user_metadata.full_name;
+            document.getElementById('custName').value = user.user_metadata.full_name;
+            document.getElementById('custCompany').value = user.user_metadata.company;
+        }
+
+        async function logout() { await sb.auth.signOut(); location.reload(); }
+
+        async function saveJob() {
+            const { data: { user } } = await sb.auth.getUser();
+            const payload = {
+                user_id: user.id,
+                pickup: document.getElementById('pickup').value,
+                delivery: document.getElementById('delivery').value,
+                vehicle_type: document.querySelector('input[name="fleet"]:checked').value,
+                total_price: parseFloat(document.getElementById('totalDisp').innerText.replace('£',''))
+            };
+            const { error } = await sb.from('quotes').insert([payload]);
+            if (error) alert("Error: " + error.message); else alert("Booking successfully logged to the database.");
+        }
+
+        const vRates = { "44t": 250, "26t": 185, "18t": 165 };
+        let miles = 0;
+
+        function calculate() {
+            const p = document.getElementById('pickup').value;
+            const d = document.getElementById('delivery').value;
+            if (p.length > 2 && d.length > 2) {
+                const svc = new google.maps.DistanceMatrixService();
+                svc.getDistanceMatrix({ origins:[p], destinations:[d], travelMode:'DRIVING', unitSystem:google.maps.UnitSystem.IMPERIAL }, (res, stat) => {
+                    if (stat === 'OK' && res.rows[0].elements[0].status === 'OK') {
+                        miles = Math.round((res.rows[0].elements[0].distance.value * 0.000621371) * 1.05);
+                        document.getElementById('mDisp').innerText = miles;
+                        document.getElementById('tDisp').innerText = Math.round(res.rows[0].elements[0].duration.value / 60) + "m";
+                        update();
                     }
                 });
             }
         }
 
-        function isM25(postcode) {
-            if (!postcode) return false;
-            const prefix = postcode.trim().toUpperCase().match(/^[A-Z]{1,2}/);
-            return prefix && m25Postcodes.includes(prefix[0]);
-        }
-
-        function updateQuote() {
+        function update() {
             const fleet = document.querySelector('input[name="fleet"]:checked').value;
-            const base = vehicleRates[fleet];
-            let fees = currentMiles * ppm;
-            if (document.getElementById('tlOpt').checked) fees += tailLiftSurcharge;
-            if (document.getElementById('urgentOpt').checked) fees += 50;
-            fees += (Math.max(0, parseInt(document.getElementById('loadTime').value) - 1)) * demurrageRate;
-            fees += (Math.max(0, parseInt(document.getElementById('tipTime').value) - 1)) * demurrageRate;
-            if (isM25(document.getElementById('pickup').value) || isM25(document.getElementById('delivery').value)) fees += m25Surcharge;
+            let extras = (miles * 3.10);
+            if (document.getElementById('tl').checked) extras += 50;
+            if (document.getElementById('urgent').checked) extras += 50;
+            extras += parseFloat(document.getElementById('loadTime').value);
+            extras += parseFloat(document.getElementById('tipTime').value);
             
-            document.getElementById('basePriceDisplay').innerText = '£' + base.toFixed(2);
-            document.getElementById('feeDisplay').innerText = '£' + fees.toFixed(2);
-            document.getElementById('totalDisplay').innerText = '£' + (base + fees).toFixed(2);
-
-            const pallets = parseInt(document.getElementById('palletCount').value) || 0;
-            const warning = document.getElementById('capacityWarning');
-            (pallets > capacities[fleet]) ? warning.classList.remove('hidden') : warning.classList.add('hidden');
+            const total = vRates[fleet] + extras;
+            document.getElementById('baseRateDisp').innerText = '£' + vRates[fleet].toFixed(2);
+            document.getElementById('extraDisp').innerText = '£' + extras.toFixed(2);
+            document.getElementById('totalDisp').innerText = '£' + total.toFixed(2);
         }
 
-        function confirmBooking() {
-            const name = document.getElementById('custName').value;
-            if(!name) { alert("Enter Contact Name"); return; }
-            alert(`Booking confirmed for ${name}.`);
-        }
-
-        async function generatePDF() {
+        function generatePDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Frost Transport Quote", 15, 20);
-            doc.text(`Total: ${document.getElementById('totalDisplay').innerText}`, 15, 40);
+            doc.setFillColor(195, 32, 38);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.setFont("helvetica", "bold");
+            doc.text("FROST TRANSPORT SOLUTIONS LTD", 20, 25);
             doc.save("Frost_Quote.pdf");
         }
     </script>
