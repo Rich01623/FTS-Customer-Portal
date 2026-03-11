@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry"></script>
     
     <style>
@@ -25,7 +27,6 @@
         .btn-primary { background: var(--frost-red); color: white; font-weight: 900; text-transform: uppercase; transition: all 0.2s; cursor: pointer; }
         .btn-success { background: #10b981 !important; }
         
-        /* Custom scrollbar for breakdown */
         #breakdownList::-webkit-scrollbar { width: 4px; }
         #breakdownList::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     </style>
@@ -135,7 +136,12 @@
                     </div>
                 </div>
                 
-                <button id="confirmBtn" onclick="saveJob()" class="w-full btn-primary py-5 rounded font-black text-sm active:scale-95 transition-all shadow-xl">Confirm & Book Job</button>
+                <div class="space-y-3">
+                    <button onclick="downloadPDF()" class="w-full bg-slate-700 text-white py-3 rounded font-black text-[10px] uppercase hover:bg-slate-600 transition-all border border-slate-500">
+                        <i class="fa-solid fa-file-pdf mr-2"></i> Save PDF Quote
+                    </button>
+                    <button id="confirmBtn" onclick="saveJob()" class="w-full btn-primary py-5 rounded font-black text-sm active:scale-95 transition-all shadow-xl">Confirm & Book Job</button>
+                </div>
             </div>
         </div>
     </main>
@@ -192,14 +198,12 @@
             let extraTotal = 0;
             let breakdownHtml = `<div class="flex justify-between text-[11px] font-bold text-slate-300"><span>Vehicle Base (${fleet})</span><span>£${vRates[fleet].toFixed(2)}</span></div>`;
 
-            // 1. Mileage Logic (£3.10)
             if(miles > 0) {
                 const mCost = miles * 3.10;
                 extraTotal += mCost;
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400 italic"><span>Mileage (${miles}mi @ £3.10)</span><span>£${mCost.toFixed(2)}</span></div>`;
             }
 
-            // 2. M25 Surcharge
             const londonPrefixes = ['E', 'EC', 'N', 'NW', 'SE', 'SW', 'W', 'WC', 'BR', 'CR', 'DA', 'EN', 'HA', 'IG', 'KT', 'RM', 'SM', 'TW', 'UB'];
             const pPre = p.split(/[0-9]/)[0]; 
             const dPre = d.split(/[0-9]/)[0];
@@ -208,24 +212,20 @@
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-red-400 font-bold italic"><span>M25 / London Surcharge</span><span>£50.00</span></div>`;
             }
 
-            // 3. Out of Hours (£50)
             const isOOH = (t) => t && (parseInt(t.split(':')[0]) >= 18 || parseInt(t.split(':')[0]) < 6);
             if (isOOH(cTime) || isOOH(dTime)) {
                 extraTotal += 50;
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-orange-400 font-bold italic"><span>Night Shift Surcharge</span><span>£50.00</span></div>`;
             }
 
-            // 4. Overnight Parking (£50)
             if (cDate && dDate && cDate !== dDate) {
                 extraTotal += 50;
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-blue-400 font-bold italic"><span>Overnight Safe Parking</span><span>£50.00</span></div>`;
             }
 
-            // 5. Tail Lift & Urgent
             if (document.getElementById('tl').checked) { extraTotal += 50; breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Tail Lift Delivery</span><span>£50.00</span></div>`; }
             if (document.getElementById('urgent').checked) { extraTotal += 50; breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Priority Dispatch</span><span>£50.00</span></div>`; }
             
-            // 6. Windows
             const lTime = parseFloat(document.getElementById('loadTime').value || 0);
             const tTime = parseFloat(document.getElementById('tipTime').value || 0);
             if (lTime > 0) { extraTotal += lTime; breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Extended Load Window</span><span>£50.00</span></div>`; }
@@ -235,6 +235,56 @@
             document.getElementById('breakdownList').innerHTML = breakdownHtml;
             document.getElementById('extraDisp').innerText = '£' + extraTotal.toFixed(2);
             document.getElementById('totalDisp').innerText = '£' + total.toFixed(2);
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Try Loading Logo - If it fails (due to security), it uses text branding
+            const img = new Image();
+            img.src = 'logo.png';
+            
+            img.onload = function() {
+                generatePDF(img);
+            };
+            img.onerror = function() {
+                console.warn("Logo blocked or not found. Using text fallback.");
+                generatePDF(null);
+            };
+
+            function generatePDF(logoImg) {
+                if (logoImg) {
+                    doc.addImage(logoImg, 'PNG', 15, 10, 50, 20);
+                } else {
+                    doc.setFontSize(22);
+                    doc.setTextColor(195, 32, 38);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("FROST TRANSPORT SOLUTIONS", 15, 20);
+                }
+
+                doc.setFontSize(22);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(0,0,0);
+                doc.text("QUOTATION", 195, 25, { align: "right" });
+                
+                doc.autoTable({
+                    startY: 40,
+                    head: [['SERVICE ITEM', 'DETAILS']],
+                    body: [
+                        ['Customer', document.getElementById('custCompany').value],
+                        ['Collection', document.getElementById('pickup').value],
+                        ['Delivery', document.getElementById('delivery').value],
+                        ['Vehicle Type', document.querySelector('input[name="fleet"]:checked').value],
+                        ['Total Distance', miles + ' Miles'],
+                        ['Quote Amount', document.getElementById('totalDisp').innerText]
+                    ],
+                    theme: 'striped',
+                    headStyles: { fillColor: [30, 41, 59] }
+                });
+
+                doc.save(`Frost_Quote_${Date.now()}.pdf`);
+            }
         }
 
         async function saveJob() {
