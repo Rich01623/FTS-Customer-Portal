@@ -152,6 +152,7 @@
         const sb = supabase.createClient(_URL, _KEY);
 
         let miles = 0;
+        let currentBreakdown = []; // Stores breakdown for PDF
         const vRates = { "44t": 250, "26t": 185, "18t": 165 };
 
         window.onload = async () => {
@@ -167,6 +168,7 @@
             document.getElementById('custCompany').value = user.user_metadata.company;
             document.getElementById('custPhone').value = user.user_metadata.phone || "N/A";
             document.getElementById('custEmail').value = user.email;
+            update();
         }
 
         function calculate() {
@@ -196,11 +198,15 @@
             const dDate = document.getElementById('delDate').value;
 
             let extraTotal = 0;
+            currentBreakdown = [];
+            currentBreakdown.push(["Vehicle Base (" + fleet + ")", "£" + vRates[fleet].toFixed(2)]);
+            
             let breakdownHtml = `<div class="flex justify-between text-[11px] font-bold text-slate-300"><span>Vehicle Base (${fleet})</span><span>£${vRates[fleet].toFixed(2)}</span></div>`;
 
             if(miles > 0) {
                 const mCost = miles * 3.10;
                 extraTotal += mCost;
+                currentBreakdown.push(["Mileage (" + miles + "mi @ £3.10)", "£" + mCost.toFixed(2)]);
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400 italic"><span>Mileage (${miles}mi @ £3.10)</span><span>£${mCost.toFixed(2)}</span></div>`;
             }
 
@@ -209,27 +215,30 @@
             const dPre = d.split(/[0-9]/)[0];
             if (londonPrefixes.includes(pPre) || londonPrefixes.includes(dPre)) {
                 extraTotal += 50;
+                currentBreakdown.push(["M25 / London Surcharge", "£50.00"]);
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-red-400 font-bold italic"><span>M25 / London Surcharge</span><span>£50.00</span></div>`;
             }
 
             const isOOH = (t) => t && (parseInt(t.split(':')[0]) >= 18 || parseInt(t.split(':')[0]) < 6);
             if (isOOH(cTime) || isOOH(dTime)) {
                 extraTotal += 50;
+                currentBreakdown.push(["Night Shift Surcharge", "£50.00"]);
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-orange-400 font-bold italic"><span>Night Shift Surcharge</span><span>£50.00</span></div>`;
             }
 
             if (cDate && dDate && cDate !== dDate) {
                 extraTotal += 50;
+                currentBreakdown.push(["Overnight Safe Parking", "£50.00"]);
                 breakdownHtml += `<div class="flex justify-between text-[11px] text-blue-400 font-bold italic"><span>Overnight Safe Parking</span><span>£50.00</span></div>`;
             }
 
-            if (document.getElementById('tl').checked) { extraTotal += 50; breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Tail Lift Delivery</span><span>£50.00</span></div>`; }
-            if (document.getElementById('urgent').checked) { extraTotal += 50; breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Priority Dispatch</span><span>£50.00</span></div>`; }
+            if (document.getElementById('tl').checked) { extraTotal += 50; currentBreakdown.push(["Tail Lift Service", "£50.00"]); breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Tail Lift Delivery</span><span>£50.00</span></div>`; }
+            if (document.getElementById('urgent').checked) { extraTotal += 50; currentBreakdown.push(["Priority Load", "£50.00"]); breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Priority Dispatch</span><span>£50.00</span></div>`; }
             
             const lTime = parseFloat(document.getElementById('loadTime').value || 0);
             const tTime = parseFloat(document.getElementById('tipTime').value || 0);
-            if (lTime > 0) { extraTotal += lTime; breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Extended Load Window</span><span>£50.00</span></div>`; }
-            if (tTime > 0) { extraTotal += tTime; breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Extended Tip Window</span><span>£50.00</span></div>`; }
+            if (lTime > 0) { extraTotal += lTime; currentBreakdown.push(["Ext. Load Window", "£50.00"]); breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Extended Load Window</span><span>£50.00</span></div>`; }
+            if (tTime > 0) { extraTotal += tTime; currentBreakdown.push(["Ext. Tip Window", "£50.00"]); breakdownHtml += `<div class="flex justify-between text-[11px] text-slate-400"><span>Extended Tip Window</span><span>£50.00</span></div>`; }
 
             const total = vRates[fleet] + extraTotal;
             document.getElementById('breakdownList').innerHTML = breakdownHtml;
@@ -240,49 +249,53 @@
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            const logo = new Image();
+            logo.src = 'logo.png';
             
-            // Try Loading Logo - If it fails (due to security), it uses text branding
-            const img = new Image();
-            img.src = 'logo.png';
-            
-            img.onload = function() {
-                generatePDF(img);
-            };
-            img.onerror = function() {
-                console.warn("Logo blocked or not found. Using text fallback.");
-                generatePDF(null);
-            };
+            logo.onload = () => build(logo);
+            logo.onerror = () => build(null);
 
-            function generatePDF(logoImg) {
-                if (logoImg) {
-                    doc.addImage(logoImg, 'PNG', 15, 10, 50, 20);
-                } else {
-                    doc.setFontSize(22);
-                    doc.setTextColor(195, 32, 38);
-                    doc.setFont("helvetica", "bold");
-                    doc.text("FROST TRANSPORT SOLUTIONS", 15, 20);
-                }
+            function build(img) {
+                // Professional Header
+                if (img) doc.addImage(img, 'PNG', 15, 15, 45, 18);
+                else doc.setFontSize(22).setTextColor(195, 32, 38).setFont("helvetica", "bold").text("FROST TRANSPORT", 15, 25);
 
-                doc.setFontSize(22);
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(0,0,0);
-                doc.text("QUOTATION", 195, 25, { align: "right" });
-                
+                doc.setFontSize(10).setTextColor(100).setFont("helvetica", "normal");
+                doc.text(["Frost Transport Solutions", "Quote Ref: " + Date.now().toString().slice(-6), "Date: " + new Date().toLocaleDateString()], 195, 20, { align: "right" });
+
+                // Customer & Route Side-by-Side Tables
                 doc.autoTable({
-                    startY: 40,
-                    head: [['SERVICE ITEM', 'DETAILS']],
-                    body: [
-                        ['Customer', document.getElementById('custCompany').value],
-                        ['Collection', document.getElementById('pickup').value],
-                        ['Delivery', document.getElementById('delivery').value],
-                        ['Vehicle Type', document.querySelector('input[name="fleet"]:checked').value],
-                        ['Total Distance', miles + ' Miles'],
-                        ['Quote Amount', document.getElementById('totalDisp').innerText]
-                    ],
-                    theme: 'striped',
-                    headStyles: { fillColor: [30, 41, 59] }
+                    startY: 45, margin: { right: 107 },
+                    head: [['CUSTOMER']],
+                    body: [[document.getElementById('custCompany').value], [document.getElementById('custName').value], [document.getElementById('custEmail').value], [document.getElementById('custPhone').value]],
+                    theme: 'plain', headStyles: { fillColor: [195, 32, 38], textColor: 255 }, styles: { fontSize: 9 }
                 });
 
+                doc.autoTable({
+                    startY: 45, margin: { left: 107 },
+                    head: [['ROUTE']],
+                    body: [["From: " + document.getElementById('pickup').value], ["To: " + document.getElementById('delivery').value], ["Distance: " + miles + " Mi"], ["Vehicle: " + document.querySelector('input[name="fleet"]:checked').value]],
+                    theme: 'plain', headStyles: { fillColor: [30, 41, 59], textColor: 255 }, styles: { fontSize: 9 }
+                });
+
+                // Financial Breakdown
+                doc.setFontSize(11).setTextColor(30).setFont("helvetica", "bold").text("QUOTE BREAKDOWN", 15, doc.lastAutoTable.finalY + 15);
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 18,
+                    head: [['Description', 'Amount']],
+                    body: currentBreakdown,
+                    theme: 'striped',
+                    headStyles: { fillColor: [240, 240, 240], textColor: 0 },
+                    columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } }
+                });
+
+                // Total Box
+                const fy = doc.lastAutoTable.finalY + 10;
+                doc.setFillColor(30, 41, 59).rect(140, fy, 55, 15, 'F');
+                doc.setTextColor(255).setFontSize(12).text("TOTAL:", 145, fy + 9.5);
+                doc.text(document.getElementById('totalDisp').innerText, 190, fy + 9.5, { align: "right" });
+
+                doc.setFontSize(8).setTextColor(150).text("All quotes exclude VAT and are valid for 7 days.", 105, 285, { align: "center" });
                 doc.save(`Frost_Quote_${Date.now()}.pdf`);
             }
         }
