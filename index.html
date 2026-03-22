@@ -3,220 +3,372 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frost Transport | Secure Portal</title>
+    <title>Frost Transport | Secure Booking Portal</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Replace Key Below if needed -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry,places&callback=initMap"></script>
     
     <style>
-        :root { --frost-red: #c32026; --frost-dark: #0f172a; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; }
-        #authOverlay { position: fixed; inset: 0; background: var(--frost-dark); z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .frost-input { height: 45px; border: 1px solid #cbd5e1; padding: 0 1rem; border-radius: 6px; width: 100%; font-size: 0.9rem; margin-bottom: 12px; }
-        .btn-primary { background: var(--frost-red); color: white; font-weight: 800; text-transform: uppercase; width: 100%; padding: 12px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
-        .btn-primary:hover { background: #a11a1f; }
-        .tab-btn { flex: 1; padding: 10px; font-weight: 800; font-size: 11px; text-transform: uppercase; border-bottom: 3px solid transparent; color: #94a3b8; }
-        .tab-active { border-color: var(--frost-red); color: var(--frost-red); }
-        #map { width: 100%; height: 300px; border-radius: 8px; background: #e2e8f0; }
-        .parking-badge { display: none; background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 800; margin-top: 5px; }
+        :root { --frost-red: #c32026; --frost-grey: #1e293b; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; overflow-x: hidden; }
+        
+        #authOverlay { position: fixed; inset: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); z-index: 100; display: none; align-items: center; justify-content: center; }
+        .frost-card { position: relative; z-index: 10; background: white; border-radius: 6px; border: 1px solid #cbd5e1; padding: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .border-frost-dark { border-top: 8px solid var(--frost-grey); }
+        .frost-input { height: 42px; border: 1px solid #cbd5e1; padding: 0 0.75rem; border-radius: 4px; width: 100%; background: white; font-size: 0.85rem; outline: none; }
+        
+        input[type="date"] { font-size: 1.1rem !important; font-weight: 700 !important; color: #1e293b; }
+        .label-text { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; margin-bottom: 3px; display: block; }
+        
+        #historySidebar { position: fixed; right: -500px; top: 0; width: 500px; height: 100%; background: white; z-index: 150; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -10px 0 30px rgba(0,0,0,0.1); border-left: 2px solid #e2e8f0; }
+        #historySidebar.open { right: 0; }
+        
+        #map { width: 100%; height: 235px; border-radius: 6px; margin-top: 15px; border: 2px solid #cbd5e1; }
+        .header-logo { height: 110px; width: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05)); }
     </style>
 </head>
-<body class="p-4 lg:p-10">
+<body class="p-6">
 
-    <!-- LOGIN / REGISTER OVERLAY -->
-    <div id="authOverlay">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
-            <div class="flex justify-center mb-6">
-                <img src="logo.png" alt="Frost Logo" class="h-20 w-auto">
-            </div>
-
-            <div class="flex mb-6 border-b border-slate-100">
-                <button id="loginTab" onclick="setAuthMode('login')" class="tab-btn tab-active">Login</button>
-                <button id="registerTab" onclick="setAuthMode('register')" class="tab-btn">Register</button>
-            </div>
-
-            <div id="authForm" class="space-y-2">
-                <div id="regFields" class="hidden">
-                    <input type="text" id="regName" placeholder="Full Name" class="frost-input">
-                    <input type="text" id="regCompany" placeholder="Company Name" class="frost-input">
-                </div>
-                <input type="email" id="email" placeholder="Email Address" class="frost-input">
-                <input type="password" id="password" placeholder="Password" class="frost-input">
-                <button id="mainAuthBtn" onclick="handleAuth()" class="btn-primary mt-4">Access Portal</button>
-            </div>
-            <p id="authMsg" class="text-[10px] text-center text-slate-400 mt-6 font-bold uppercase tracking-widest">Frost Transport Secure Gateway</p>
+    <div id="historySidebar" class="p-8 flex flex-col">
+        <div class="flex justify-between items-center border-b-2 border-slate-100 pb-4 mb-6">
+            <h2 class="text-2xl font-black italic uppercase text-slate-900">Quote <span class="text-red-600">History</span></h2>
+            <button onclick="toggleHistory()" class="text-slate-400 hover:text-red-600 transition-colors"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
+        </div>
+        <div id="historyList" class="flex-grow overflow-y-auto space-y-4 pr-2">
+            <p class="text-xs text-slate-400 font-bold uppercase text-center py-20 italic">Retrieving secure logs...</p>
         </div>
     </div>
 
-    <!-- MAIN APP CONTENT -->
-    <main class="max-w-7xl mx-auto hidden" id="appMain">
-        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-            <img src="logo.png" alt="Frost" class="h-16">
-            <div class="text-right">
-                <div id="userBadge" class="font-black text-red-600 text-sm uppercase italic"></div>
-                <button onclick="logout()" class="text-[10px] font-bold text-slate-400 uppercase hover:text-red-600">Logout</button>
+    <div id="authOverlay">
+        <div class="bg-white p-8 rounded shadow-2xl w-[420px] border-t-8 border-red-600">
+            <h2 class="text-2xl font-black italic mb-6 text-center uppercase text-red-600">Frost Portal</h2>
+            <div id="loginForm" class="space-y-4">
+                <input type="email" id="email" placeholder="Email Address" class="frost-input">
+                <input type="password" id="password" placeholder="Password" class="frost-input">
+                <button onclick="handleAuth('login')" class="w-full bg-red-600 text-white font-black py-3 rounded uppercase">Login</button>
+                <p class="text-center text-[10px] font-bold text-slate-500 cursor-pointer uppercase" onclick="toggleAuth(true)">Register New Account</p>
             </div>
-        </header>
+            <div id="regForm" class="hidden space-y-3">
+                <input type="text" id="regName" placeholder="Full Name" class="frost-input">
+                <input type="text" id="regCompany" placeholder="Company Name" class="frost-input">
+                <input type="text" id="regPhone" placeholder="Contact Number" class="frost-input">
+                <input type="email" id="regEmail" placeholder="Email Address" class="frost-input">
+                <input type="password" id="regPass" placeholder="Set Password" class="frost-input">
+                <button onclick="handleAuth('register')" class="w-full bg-slate-900 text-white font-black py-3 rounded uppercase">Create Account</button>
+                <p class="text-center text-[10px] font-bold text-slate-500 cursor-pointer" onclick="toggleAuth(false)">BACK TO LOGIN</p>
+            </div>
+        </div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                    <h3 class="text-red-600 font-black italic uppercase mb-4 text-sm">01. Journey & Date</h3>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="text-[10px] font-black text-slate-500 uppercase">Collection Date</label>
-                            <input type="date" id="colDate" class="frost-input" onchange="update()">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black text-slate-500 uppercase">Delivery Date</label>
-                            <input type="date" id="delDate" class="frost-input" onchange="update()">
-                            <div id="parkingAlert" class="parking-badge"><i class="fa-solid fa-shield-halved"></i> £50 SECURE PARKING ADDED</div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <input type="text" id="pickup" placeholder="Collection Postcode" class="frost-input uppercase font-bold" onchange="calculate()">
-                        <input type="text" id="delivery" placeholder="Delivery Postcode" class="frost-input uppercase font-bold" onchange="calculate()">
-                    </div>
-                    <div id="map"></div>
+    <header class="max-w-[1600px] mx-auto mb-6 flex justify-between items-center border-b-2 border-slate-300 pb-4">
+        <img src="logo.png" alt="Company Logo" class="header-logo" onerror="this.style.display='none'">
+        <div class="flex gap-4 items-center">
+            <button onclick="toggleHistory()" class="text-[10px] font-black bg-white px-5 py-2 rounded border-2 border-slate-200 uppercase hover:border-red-600 transition-all">
+                <i class="fa-solid fa-file-lines mr-2 text-red-600"></i> Previous Quotes
+            </button>
+            <button onclick="logout()" class="text-[9px] font-bold text-red-600 uppercase border border-red-600 px-2 h-6 rounded hover:bg-red-50">Logout</button>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto grid grid-cols-12 gap-6">
+        <div class="col-span-4 space-y-6">
+            <section class="frost-card border-frost-dark h-[180px] flex flex-col justify-center items-center text-center">
+                <h3 class="label-text text-slate-400 absolute top-5 left-5">00. User Profile</h3>
+                <i class="fa-solid fa-circle-user text-red-600 text-3xl mb-2"></i>
+                <h2 class="text-xl font-black italic text-slate-900 uppercase">Welcome, <span id="welcomeName">User</span></h2>
+                <div class="hidden"><input type="text" id="custName"><input type="text" id="custCompany"><input type="text" id="custEmail"></div>
+            </section>
+
+            <section class="frost-card border-frost-dark h-[400px]">
+                <div class="flex justify-between items-start">
+                    <h3 class="label-text text-slate-400">01. Journey & Route</h3>
+                    <button onclick="clearRoute()" class="text-[9px] font-black text-red-600 uppercase hover:underline">Clear Route</button>
                 </div>
-            </div>
+                <div class="grid grid-cols-2 gap-4 mt-2 mb-4">
+                    <div><span class="label-text">Collection</span><input type="text" id="pickup" class="frost-input uppercase font-bold" onchange="calculate()"></div>
+                    <div><span class="label-text">Delivery</span><input type="text" id="delivery" class="frost-input uppercase font-bold" onchange="calculate()"></div>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <label class="flex-1 flex items-center justify-center gap-2 p-2 border rounded bg-white cursor-pointer"><input type="checkbox" id="multiDropCheck" onchange="toggleMultiDrop()"><span class="text-[9px] font-black uppercase">Multi-Drop</span></label>
+                    <label id="optiContainer" class="flex-1 flex items-center justify-center gap-2 p-2 border rounded bg-white opacity-40 cursor-pointer"><input type="checkbox" id="optimizeCheck" onchange="calculate()" disabled><span class="text-[9px] font-black uppercase">Optimize</span></label>
+                </div>
+                <div id="waypointContainer" style="display: none;" class="mb-4">
+                    <span class="label-text text-red-600 font-black">Intermediate Drop-Offs</span>
+                    <textarea id="waypoints" class="frost-input text-[10px] font-bold h-20 pt-2 uppercase" onchange="calculate()"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3 bg-slate-100 p-4 rounded border border-slate-200">
+                    <div class="text-center border-r border-slate-200"><span class="label-text">Total Miles</span><div id="mileDisp" class="text-2xl font-black italic text-slate-900">0</div></div>
+                    <div class="text-center"><span class="label-text">Drive Time</span><div id="timeDisp" class="text-2xl font-black italic text-slate-900">0h</div></div>
+                </div>
+            </section>
+        </div>
 
-            <div class="bg-slate-900 text-white p-8 rounded-lg shadow-2xl flex flex-col justify-between h-fit">
+        <div class="col-span-5 space-y-6">
+            <section class="frost-card border-frost-dark h-[604px]">
+                <h3 class="label-text text-slate-400">02. Operational Logistics</h3>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-3 mt-2 mb-4">
+                    <div><span class="label-text">Coll. Date</span><input type="date" id="collDate" class="frost-input" onchange="matchDates()"></div>
+                    <div><span class="label-text">Del. Date</span><input type="date" id="delDate" class="frost-input" onchange="update()"></div>
+                    <div><span class="label-text">Coll. Time</span><input type="time" id="collTime" class="frost-input text-[10px]" onchange="update()"></div>
+                    <div class="invisible">Spacer</div>
+                    <div><span class="label-text">Load Window (Hrs)</span><input type="number" id="loadHrs" value="1" step="0.5" class="frost-input" oninput="update()"></div>
+                    <div><span class="label-text">Tip Window (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input" oninput="update()"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <label class="flex items-center justify-between p-3 bg-white border rounded hover:border-red-600 cursor-pointer"><span class="font-bold text-[9px] uppercase italic">Tail Lift</span><input type="checkbox" id="checkTailLift" onchange="update()" class="w-4 h-4 accent-red-600"></label>
+                    <label class="flex items-center justify-between p-3 bg-white border rounded hover:border-red-600 cursor-pointer"><span class="font-bold text-[9px] uppercase italic">Timed Arrival</span><input type="checkbox" id="checkPre10" onchange="update()" class="w-4 h-4 accent-red-600"></label>
+                </div>
+                <div id="map"></div>
+            </section>
+        </div>
+
+        <div class="col-span-3">
+            <div class="bg-slate-900 text-white p-6 h-[604px] rounded-lg shadow-2xl flex flex-col justify-between border-b-8 border-red-600">
                 <div>
-                    <h2 class="text-red-500 font-black italic uppercase text-xs mb-6 border-b border-slate-700 pb-2">Quote Summary</h2>
-                    <div id="breakdown" class="space-y-3 text-sm font-mono text-slate-400 mb-8"></div>
-                    <div class="text-center">
-                        <span class="text-[10px] text-slate-500 uppercase font-black">Total (Ex. VAT)</span>
-                        <div id="totalDisp" class="text-5xl font-black italic text-white mt-1">£0.00</div>
+                    <h2 class="text-red-500 font-black italic uppercase tracking-widest text-[8px] mb-6 border-b border-slate-700 pb-2 flex justify-between">Frost Transport | Summary <i class="fa-solid fa-file-invoice-dollar"></i></h2>
+                    <div id="breakdownList" class="space-y-4 text-[11px] font-mono text-slate-400 mt-4">
+                        <p class="italic">Journey details required...</p>
                     </div>
                 </div>
-                <button onclick="saveJob()" class="btn-primary py-4 mt-8">Confirm Booking</button>
+                <div class="text-center">
+                    <span class="label-text text-slate-500">Quote Total (Ex VAT)</span>
+                    <div id="totalDisp" class="text-5xl font-black italic tracking-tighter text-white">£0.00</div>
+                    <div class="flex flex-col gap-2 mt-6">
+                        <button id="confirmBtn" onclick="saveJob()" class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded font-black text-sm active:scale-95 transition-all shadow-xl uppercase">Submit Enquiry</button>
+                        <button onclick="downloadPDF()" class="w-full bg-slate-800 text-white py-2 rounded font-black text-[9px] uppercase hover:bg-slate-700 transition-all border border-slate-700 opacity-60">Save PDF</button>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
     <script>
-        const HOURLY_RATE = 61.24; 
-        const MPG = 8;
+        const HOURLY_TOTAL = 61.241826; 
+        const MPG = 8; 
         const LTR_GAL = 4.546;
-        const PPL = 1.25;
+        const FIXED_MARGIN = 25; 
+        const FIXED_PPL = 1.25;    
 
-        // Supabase Init
         const _URL = "https://tdrzytgiqvdulityqttr.supabase.co";
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
 
-        let map, directionsRenderer, directionsService;
-        let authMode = 'login';
+        let map, directionsService, directionsRenderer;
+        let routeMiles = 0; let driveHrs = 0;
 
         function initMap() {
-            try {
-                directionsService = new google.maps.DirectionsService();
-                directionsRenderer = new google.maps.DirectionsRenderer({
-                    polylineOptions: { strokeColor: "#c32026", strokeWeight: 6 }
-                });
-                map = new google.maps.Map(document.getElementById("map"), {
-                    zoom: 6, center: { lat: 52.3, lng: -1.1 }, disableDefaultUI: true
-                });
-                directionsRenderer.setMap(map);
-            } catch (e) {
-                console.error("Google Maps failed to load. Check API Key and Billing.", e);
-            }
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({ polylineOptions: { strokeColor: "#c32026", strokeWeight: 6, strokeOpacity: 0.9 } });
+            map = new google.maps.Map(document.getElementById("map"), { 
+                zoom: 6, center: { lat: 52.3, lng: -1.1 },
+                mapTypeControl: false, streetViewControl: false
+            });
+            directionsRenderer.setMap(map);
         }
 
         window.onload = async () => {
             const { data: { session } } = await sb.auth.getSession();
             if (session?.user) setupUser(session.user);
+            else document.getElementById('authOverlay').style.display = 'flex';
         };
-
-        function setAuthMode(mode) {
-            authMode = mode;
-            document.getElementById('loginTab').classList.toggle('tab-active', mode === 'login');
-            document.getElementById('registerTab').classList.toggle('tab-active', mode === 'register');
-            document.getElementById('regFields').classList.toggle('hidden', mode === 'login');
-            document.getElementById('mainAuthBtn').innerText = mode === 'login' ? 'Access Portal' : 'Create Account';
-        }
-
-        async function handleAuth() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            if (authMode === 'register') {
-                const { error } = await sb.auth.signUp({
-                    email, password, options: { data: { full_name: document.getElementById('regName').value, company: document.getElementById('regCompany').value } }
-                });
-                if (error) alert(error.message);
-                else alert("Success! Please check your email to verify your account.");
-            } else {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) alert(error.message);
-                else setupUser(data.user);
-            }
-        }
 
         function setupUser(user) {
             document.getElementById('authOverlay').style.display = 'none';
-            document.getElementById('appMain').classList.remove('hidden');
-            document.getElementById('userBadge').innerText = user.user_metadata.full_name || user.email;
+            const fullName = user.user_metadata.full_name || "Valued Client";
+            document.getElementById('welcomeName').innerText = fullName.split(' ')[0];
+            document.getElementById('custName').value = fullName;
+            document.getElementById('custCompany').value = user.user_metadata.company || "N/A";
+            document.getElementById('custEmail').value = user.email;
+            update();
+        }
+
+        function matchDates() {
+            const coll = document.getElementById('collDate').value;
+            if (coll) { document.getElementById('delDate').value = coll; }
+            update();
+        }
+
+        function toggleHistory() {
+            const s = document.getElementById('historySidebar');
+            s.classList.toggle('open');
+            if (s.classList.contains('open')) fetchHistory();
+        }
+
+        async function fetchHistory() {
+            const { data: { user } } = await sb.auth.getUser();
+            const list = document.getElementById('historyList');
+            const { data, error } = await sb.from('quotes').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+            if (error || !data.length) { list.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-20 uppercase font-black">No recent bookings</p>`; return; }
+            list.innerHTML = data.map(j => `
+                <div class="p-4 border-2 border-slate-100 rounded-lg bg-white hover:border-red-500 transition-all cursor-default shadow-sm">
+                    <div class="flex justify-between mb-2"><span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">${new Date(j.created_at).toLocaleDateString()}</span><span class="text-red-600 font-black italic">£${j.total_price.toLocaleString()}</span></div>
+                    <div class="text-[10px] font-bold text-slate-700 uppercase leading-relaxed"><i class="fa-solid fa-location-dot text-red-600 mr-2"></i> ${j.pickup} <br/> <i class="fa-solid fa-truck-fast text-slate-300 mr-2"></i> ${j.delivery}</div>
+                </div>
+            `).join('');
+        }
+
+        function toggleMultiDrop() {
+            const isM = document.getElementById('multiDropCheck').checked;
+            document.getElementById('waypointContainer').style.display = isM ? 'block' : 'none';
+            document.getElementById('optimizeCheck').disabled = !isM;
+            document.getElementById('optiContainer').style.opacity = isM ? '1' : '0.4';
+            calculate();
         }
 
         function calculate() {
             const p = document.getElementById('pickup').value;
             const d = document.getElementById('delivery').value;
             if (p.length < 3 || d.length < 3) return;
-
-            directionsService.route({
-                origin: p, destination: d, travelMode: 'DRIVING'
-            }, (res, stat) => {
+            let wps = [];
+            if (document.getElementById('multiDropCheck').checked) {
+                document.getElementById('waypoints').value.split('\n').forEach(l => { if(l.trim()) wps.push({location: l.trim(), stopover: true}); });
+            }
+            directionsService.route({ origin: p, destination: d, waypoints: wps, optimizeWaypoints: document.getElementById('optimizeCheck').checked, travelMode: 'DRIVING' }, (res, stat) => {
                 if (stat === 'OK') {
                     directionsRenderer.setDirections(res);
-                    const leg = res.routes[0].legs[0];
-                    const miles = Math.round(leg.distance.value * 0.000621371 * 1.05);
-                    const hours = (leg.duration.value / 3600 * 1.25).toFixed(2);
-                    
-                    // Hidden mileage calculation
-                    window.currentMiles = miles;
-                    window.currentHours = hours;
+                    let m = 0; let s = 0;
+                    res.routes[0].legs.forEach(leg => { m += leg.distance.value; s += leg.duration.value; });
+                    routeMiles = Math.round((m * 0.000621371) * 1.05);
+                    driveHrs = (s / 3600) * 1.25;
+                    document.getElementById('mileDisp').innerText = routeMiles;
+                    document.getElementById('timeDisp').innerText = Math.round(driveHrs) + "h";
                     update();
                 }
             });
         }
 
         function update() {
-            const miles = window.currentMiles || 0;
-            const driveHrs = parseFloat(window.currentHours) || 0;
-            const totalHrs = driveHrs + 2; // Adding 2 hrs for load/tip
-            
-            const cost = (totalHrs * HOURLY_RATE) + ((miles / MPG) * LTR_GAL * PPL);
-            let total = cost * 1.25;
-
-            // Secure Parking Logic
-            let parking = 0;
-            const cDate = document.getElementById('colDate').value;
-            const dDate = document.getElementById('delDate').value;
-            if(cDate && dDate && cDate !== dDate) {
-                parking = 50;
-                document.getElementById('parkingAlert').style.display = 'block';
-            } else {
-                document.getElementById('parkingAlert').style.display = 'none';
+            const totalHrs = driveHrs + parseFloat(document.getElementById('loadHrs').value || 0) + parseFloat(document.getElementById('tipHrs').value || 0);
+            const costTime = totalHrs * HOURLY_TOTAL;
+            const costFuel = (routeMiles / MPG) * LTR_GAL * FIXED_PPL;
+            const baseCost = costTime + costFuel;
+            let surcharges = 0; let dropCount = 0;
+            let overnightSurcharge = 0; let londonSurcharge = 0;
+            let tailLiftSurcharge = 0; let timedSurcharge = 0;
+            const m25Districts = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','E20','EC1','EC2','EC3','EC4','N1','N2','N3','N4','N5','N6','N7','N8','N9','N10','N11','N12','N13','N14','N15','N16','N17','N18','N19','N20','N21','N22','NW1','NW2','NW3','NW4','NW5','NW6','NW7','NW8','NW9','NW10','NW11','SE1','SE2','SE3','SE4','SE5','SE6','SE7','SE8','SE9','SE10','SE11','SE12','SE13','SE14','SE15','SE16','SE17','SE18','SE19','SE20','SE21','SE22','SE23','SE24','SE25','SE26','SE27','SE28','SW1','SW2','SW3','SW4','SW5','SW6','SW7','SW8','SW9','SW10','SW11','SW12','SW13','SW14','SW15','SW16','SW17','SW18','SW19','SW20','W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12','W13','W14','WC1','WC2','BR1','BR2','BR3','BR4','BR5','BR7','CR0','CR2','CR4','CR7','CR8','DA1','DA5','DA6','DA7','DA8','DA14','DA15','DA16','DA17','DA18','EN1','EN2','EN3','EN4','EN5','HA0','HA1','HA2','HA3','HA4','HA5','HA6','HA7','HA8','HA9','IG1','IG2','IG3','IG4','IG5','IG6','IG7','IG8','IG10','IG11','KT1','KT2','KT3','KT4','KT5','KT6','KT9','RM1','RM2','RM3','RM5','RM6','RM7','RM8','RM9','RM10','RM11','RM12','RM13','RM14','SM1','SM2','SM3','SM4','SM5','SM6','TW1','TW2','TW3','TW4','TW5','TW7','TW8','TW9','TW10','TW11','TW12','TW13','TW14','TW15','TW19','UB1','UB2','UB3','UB4','UB5','UB6','UB7','UB8','UB10','WD3','WD6','WD17','WD19','WD23','WD24','WD25'];
+            const pUp = document.getElementById('pickup').value.toUpperCase();
+            const dEl = document.getElementById('delivery').value.toUpperCase();
+            const getOutcode = (str) => { const match = str.match(/[A-Z]{1,2}[0-9][0-9A-Z]?/); return match ? match[0] : null; };
+            if (m25Districts.includes(getOutcode(pUp)) || m25Districts.includes(getOutcode(dEl))) { londonSurcharge = 50; surcharges += londonSurcharge; }
+            const collD = document.getElementById('collDate').value;
+            const delD = document.getElementById('delDate').value;
+            if (collD && delD && collD !== delD) { overnightSurcharge = 50; surcharges += overnightSurcharge; }
+            if(document.getElementById('checkTailLift').checked) { tailLiftSurcharge = 50; surcharges += tailLiftSurcharge; }
+            if(document.getElementById('checkPre10').checked) { timedSurcharge = 25; surcharges += timedSurcharge; }
+            if(document.getElementById('multiDropCheck').checked) { document.getElementById('waypoints').value.split('\n').forEach(line => { if(line.trim().length > 2) dropCount++; }); surcharges += (dropCount * 50); }
+            const baseWithMargin = baseCost * (1 + (FIXED_MARGIN/100));
+            const finalTotal = baseWithMargin + surcharges;
+            const quote = Math.ceil((finalTotal - 0.01) / 10) * 10;
+            if (routeMiles > 0) {
+                document.getElementById('breakdownList').innerHTML = `
+                    <div class="flex justify-between border-b border-slate-800 pb-2"><span>DIST.</span><span class="text-white">${routeMiles} MI</span></div>
+                    <div class="flex justify-between border-b border-slate-800 pb-2"><span>TIME</span><span class="text-white">${totalHrs.toFixed(1)}H</span></div>
+                    ${londonSurcharge > 0 ? `<div class="flex justify-between text-orange-400 font-bold border-b border-slate-800 pb-2"><span>M25 SURCHARGE</span><span>£50.00</span></div>` : ''}
+                    ${overnightSurcharge > 0 ? `<div class="flex justify-between text-yellow-500 font-bold border-b border-slate-800 pb-2"><span>OVERNIGHT</span><span>£50.00</span></div>` : ''}
+                    ${tailLiftSurcharge > 0 ? `<div class="flex justify-between text-blue-400 font-bold border-b border-slate-800 pb-2"><span>TAIL LIFT</span><span>£50.00</span></div>` : ''}
+                    ${timedSurcharge > 0 ? `<div class="flex justify-between text-purple-400 font-bold border-b border-slate-800 pb-2"><span>TIMED ARRIVAL</span><span>£25.00</span></div>` : ''}
+                    ${dropCount > 0 ? `<div class="flex justify-between text-red-500 font-bold border-b border-slate-800 pb-2"><span>DROPS</span><span>£${(dropCount * 50).toFixed(2)}</span></div>` : ''}
+                `;
+                document.getElementById('totalDisp').innerText = '£' + (quote || 0).toLocaleString();
             }
-
-            const final = Math.ceil(((total + parking) - 0.01) / 10) * 10;
-            document.getElementById('totalDisp').innerText = `£${final.toFixed(2)}`;
-            document.getElementById('breakdown').innerHTML = `
-                <div class="flex justify-between"><span>Miles</span><span>${miles}</span></div>
-                <div class="flex justify-between"><span>Base Rate</span><span>£${total.toFixed(2)}</span></div>
-                ${parking > 0 ? `<div class="flex justify-between text-red-500 font-bold"><span>Secure Parking</span><span>£50.00</span></div>` : ''}
-            `;
         }
 
-        async function logout() { await sb.auth.signOut(); location.reload(); }
-        
         async function saveJob() {
-            alert("Quote Sent to Frost Transport!");
+            const btn = document.getElementById('confirmBtn');
+            const { data: { user } } = await sb.auth.getUser();
+            
+            // Capture Data for Enquiry
+            const pickup = document.getElementById('pickup').value;
+            const delivery = document.getElementById('delivery').value;
+            const total = document.getElementById('totalDisp').innerText;
+            const company = document.getElementById('custCompany').value;
+            const name = document.getElementById('custName').value;
+            const date = document.getElementById('collDate').value;
+            const time = document.getElementById('collTime').value;
+
+            // Logistical Extras
+            const hasTailLift = document.getElementById('checkTailLift').checked ? "YES" : "NO";
+            const isTimed = document.getElementById('checkPre10').checked ? "YES" : "NO";
+            const isMultiDrop = document.getElementById('multiDropCheck').checked ? "YES" : "NO";
+
+            // 1. Save to Supabase (Database Log)
+            const payload = { 
+                user_id: user.id, 
+                pickup: pickup, 
+                delivery: delivery, 
+                total_price: parseFloat(total.replace(/[£,]/g,'')), 
+                coll_date: date, 
+                coll_time: time, 
+                vehicle_type: "44t Artic v6.7" 
+            };
+            
+            const { error } = await sb.from('quotes').insert([payload]);
+
+            if (!error) {
+                // 2. Push to your NEW Google Sheet URL
+                const sheetUrl = "https://script.google.com/macros/s/AKfycbym0il8n9FZq8RENJHTH-oq9_qWqVRJ_5GSLc3Jcc302-_w6GELOZRxRkpOGrBMCS0d/exec";
+
+                fetch(sheetUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        company: company,
+                        user: name,
+                        route: `${pickup} to ${delivery}`,
+                        date: `${date} @ ${time}`,
+                        price: total,
+                        tailLift: hasTailLift,
+                        timed: isTimed,
+                        multi: isMultiDrop
+                    })
+                }).then(() => {
+                    // Success Feedback
+                    btn.innerText = "ENQUIRY LOGGED"; 
+                    btn.style.background = "#10b981"; 
+                    setTimeout(() => { 
+                        btn.innerText = "SUBMIT ENQUIRY"; 
+                        btn.style.background = ""; 
+                    }, 3000);
+                    if (document.getElementById('historySidebar').classList.contains('open')) fetchHistory();
+                }).catch(err => console.error("Sheet Error:", err));
+            }
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
+            doc.setFontSize(22).setTextColor(195, 32, 38).setFont("helvetica", "bold").text("FROST TRANSPORT", 15, 25);
+            doc.autoTable({ startY: 40, head: [['CLIENT', 'JOURNEY']], body: [[`${document.getElementById('custCompany').value}\n${document.getElementById('custName').value}`, `${document.getElementById('pickup').value} to ${document.getElementById('delivery').value}\n${routeMiles} Mi`]], theme: 'grid', headStyles: { fillColor: [30, 41, 59] } });
+            doc.setFontSize(14).text("TOTAL: " + document.getElementById('totalDisp').innerText, 15, doc.lastAutoTable.finalY + 20);
+            doc.save(`Frost_Enquiry.pdf`);
+        }
+
+        async function handleAuth(type) {
+            if (type === 'register') { const { error } = await sb.auth.signUp({ email: document.getElementById('regEmail').value, password: document.getElementById('regPass').value, options: { data: { full_name: document.getElementById('regName').value, company: document.getElementById('regCompany').value } } }); if (error) alert(error.message); else alert("Registration Success!"); }
+            else { const { data, error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value }); if (error) alert(error.message); else setupUser(data.user); }
+        }
+        function toggleAuth(reg) { document.getElementById('loginForm').classList.toggle('hidden', reg); document.getElementById('regForm').classList.toggle('hidden', !reg); }
+        async function logout() { await sb.auth.signOut(); location.reload(); }
+
+        function clearRoute() {
+            document.getElementById('pickup').value = '';
+            document.getElementById('delivery').value = '';
+            document.getElementById('waypoints').value = '';
+            document.getElementById('multiDropCheck').checked = false;
+            routeMiles = 0; driveHrs = 0;
+            document.getElementById('mileDisp').innerText = '0';
+            document.getElementById('timeDisp').innerText = '0h';
+            document.getElementById('totalDisp').innerText = '£0.00';
+            document.getElementById('breakdownList').innerHTML = '<p class="italic">Journey details required...</p>';
+            toggleMultiDrop(); 
+            if (directionsRenderer) directionsRenderer.setDirections({routes: []});
+            map.setCenter({ lat: 52.3, lng: -1.1 });
+            map.setZoom(6);
         }
     </script>
 </body>
