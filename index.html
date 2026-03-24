@@ -15,7 +15,9 @@
     <style>
         :root { --frost-red: #c32026; --frost-dark-navy: #0f172a; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background-image: url('Pic-35-1.png'); background-size: cover; background-attachment: fixed; padding-bottom: 60px; }
-        body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.96); z-index: 0; }
+        
+        /* UPDATED: WHITE OVERLAY OPACITY REDUCED TO 0.85 */
+        body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.85); z-index: 0; }
         
         .app-screen { display: none !important; position: relative; z-index: 10; }
         .active-screen { display: block !important; }
@@ -30,7 +32,7 @@
         .vehicle-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 2px solid transparent; background: white; position: relative; }
         .vehicle-card:hover { transform: translateY(-8px); border-color: var(--frost-red); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         
-        .info-trigger { position: absolute; top: 15px; right: 15px; color: #cbd5e1; transition: color 0.2s; z-index: 20; }
+        .info-trigger { position: absolute; top: 15px; right: 15px; color: #cbd5e1; transition: color 0.2s; z-index: 20; font-size: 1.2rem; }
         .info-trigger:hover { color: var(--frost-red); }
         .tooltip-content { 
             visibility: hidden; position: absolute; top: 40px; right: 15px; left: 15px;
@@ -77,50 +79,27 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('44T Articulated', 65.85, 8)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content">
-                    <p class="font-bold border-b border-slate-700 mb-1 pb-1">SPECIFICATIONS</p>
-                    <p>PAYLOAD: 28,000kg</p>
-                    <p>CAPACITY: 26 Pallets</p>
-                </div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 28,000kg</p><p>CAPACITY: 26 Pallets</p></div>
                 <i class="fa-solid fa-truck-moving text-4xl text-red-600 mb-6"></i>
                 <h3 class="text-xl font-black uppercase italic text-slate-800">44T Artic</h3>
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Heavy Haulage</div>
             </div>
-
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('26T Rigid', 56.37, 13)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content">
-                    <p class="font-bold border-b border-slate-700 mb-1 pb-1">SPECIFICATIONS</p>
-                    <p>PAYLOAD: 14,000kg</p>
-                    <p>CAPACITY: 14-16 Pallets</p>
-                </div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 14,000kg</p><p>CAPACITY: 14-16 Pallets</p></div>
                 <i class="fa-solid fa-truck text-4xl text-red-600 mb-6"></i>
                 <h3 class="text-xl font-black uppercase italic text-slate-800">26T Rigid</h3>
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medium Capacity</div>
             </div>
-
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('7.5T Rigid', 54.44, 17)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content">
-                    <p class="font-bold border-b border-slate-700 mb-1 pb-1">SPECIFICATIONS</p>
-                    <p>PAYLOAD: 2,500kg</p>
-                    <p>CAPACITY: 8-10 Pallets</p>
-                </div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 2,500kg</p><p>CAPACITY: 8-10 Pallets</p></div>
                 <i class="fa-solid fa-truck text-4xl text-red-600 mb-6"></i>
                 <h3 class="text-xl font-black uppercase italic text-slate-800">7.5T Rigid</h3>
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Light Transit</div>
             </div>
-
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('Luton Express', 50.80, 22)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content">
-                    <p class="font-bold border-b border-slate-700 mb-1 pb-1">SPECIFICATIONS</p>
-                    <p>PAYLOAD: 1,100kg</p>
-                    <p>CAPACITY: 4-6 Pallets</p>
-                </div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 1,100kg</p><p>CAPACITY: 4-6 Pallets</p></div>
                 <i class="fa-solid fa-van-shuttle text-4xl text-red-600 mb-6"></i>
                 <h3 class="text-xl font-black uppercase italic text-slate-800">Luton Express</h3>
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Express Delivery</div>
             </div>
         </div>
     </div>
@@ -133,7 +112,10 @@
                     <i class="fa-solid fa-rotate mr-2"></i> Change Asset: <span id="displayVehicleName"></span>
                 </button>
             </div>
-            <div id="userBadge" class="text-xs font-black uppercase italic text-red-600 border px-3 py-1 rounded">CONNECTED</div>
+            <div class="flex items-center gap-4">
+                <div id="userBadge" class="text-xs font-black uppercase italic text-slate-800 border-r pr-4">CONNECTED</div>
+                <button onclick="handleLogout()" class="text-[10px] font-bold text-red-600 uppercase hover:underline">Logout</button>
+            </div>
         </header>
 
         <main class="grid grid-cols-12 gap-6">
@@ -146,15 +128,14 @@
                             <div><span class="label-text">Delivery</span><input type="date" id="delDate" class="frost-input font-bold" onchange="update()"></div>
                         </div>
                         <div class="space-y-4 mb-4">
-                            <input type="text" id="pickup" class="frost-input uppercase font-bold" placeholder="COLLECTION POSTCODE / ADDRESS">
-                            <input type="text" id="delivery" class="frost-input uppercase font-bold" placeholder="DELIVERY POSTCODE / ADDRESS">
+                            <input type="text" id="pickup" class="frost-input uppercase font-bold" placeholder="COLLECTION ADDRESS">
+                            <input type="text" id="delivery" class="frost-input uppercase font-bold" placeholder="DELIVERY ADDRESS">
                         </div>
                         <div class="flex gap-4 mb-4">
                             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="multiDropCheck" onchange="toggleMultiDrop()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Multi-Drop</span></label>
                             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="manualMode" onchange="toggleManual()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Manual Override</span></label>
                         </div>
                         <div id="waypointContainer" style="display: none;" class="mb-4 bg-slate-50 p-4 rounded border">
-                            <span class="label-text text-red-600">Intermediate Stops (£50/ea)</span>
                             <textarea id="waypoints" class="frost-input h-20 uppercase text-xs pt-2" placeholder="Enter stops (one per line)" onchange="calculate()"></textarea>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
@@ -170,10 +151,10 @@
                             <div><span class="label-text">Tip time (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                         </div>
                         <div class="space-y-3 mb-4">
-                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Tail Lift Required (+£50)</label>
-                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Pre-10am Delivery Slot (+£25)</label>
+                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Tail Lift (+£50)</label>
+                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Pre-10am (+£25)</label>
                         </div>
-                        <textarea id="additionalNotes" class="frost-input h-20 uppercase text-[10px] pt-2" placeholder="ADDITIONAL INSTRUCTIONS..."></textarea>
+                        <textarea id="additionalNotes" class="frost-input h-20 uppercase text-[10px] pt-2" placeholder="NOTES..."></textarea>
                     </section>
                 </div>
                 <div id="map" class="shadow-xl"></div>
@@ -199,30 +180,20 @@
     </div>
 
     <footer class="status-bar">
-        <div>CORE ENGINE: <span class="text-white">FROST-V10.0</span></div>
+        <div>CORE ENGINE: <span class="text-white">FROST-V10.3</span></div>
         <div class="ml-auto" id="statusVehicle">AWAITING ASSET SELECTION</div>
     </footer>
 
     <script>
-        function showScreen(screenId) {
-            document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active-screen'));
-            document.getElementById('screen-' + screenId).classList.add('active-screen');
-            window.scrollTo(0, 0);
-        }
-
-        function selectVehicle(name, rate, mpg) {
-            document.getElementById('activeRate').value = rate;
-            document.getElementById('activeMPG').value = mpg;
-            document.getElementById('activeVehicleName').value = name;
-            document.getElementById('displayVehicleName').innerText = name.toUpperCase();
-            document.getElementById('statusVehicle').innerText = `${name.toUpperCase()} | RATE: £${rate}/hr | MPG: ${mpg}`;
-            showScreen('calculator');
-            update();
-        }
-
         const _URL = "https://tdrzytgiqvdulityqttr.supabase.co";
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
+
+        // --- AUTH & PERSISTENCE ---
+        window.onload = async () => {
+            const { data: { session }, error } = await sb.auth.getSession();
+            if (session && !error) { setupUser(session.user); showScreen('fleet'); }
+        };
 
         async function handleAuth() {
             const btn = document.getElementById('loginBtn');
@@ -234,13 +205,36 @@
             else { setupUser(data.user); showScreen('fleet'); }
         }
 
+        async function handleLogout() {
+            await sb.auth.signOut();
+            location.reload();
+        }
+
         function setupUser(user) {
-            document.getElementById('userBadge').innerText = user.user_metadata.full_name || user.email;
-            document.getElementById('custName').value = user.user_metadata.full_name || "Client";
+            const name = user.user_metadata?.full_name || user.email.split('@')[0];
+            document.getElementById('userBadge').innerText = name.toUpperCase();
+            document.getElementById('custName').value = name;
             document.getElementById('custEmail').value = user.email;
             document.getElementById('userId').value = user.id;
         }
 
+        function showScreen(screenId) {
+            document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById('screen-' + screenId).classList.add('active-screen');
+            window.scrollTo(0, 0);
+        }
+
+        function selectVehicle(name, rate, mpg) {
+            document.getElementById('activeRate').value = rate;
+            document.getElementById('activeMPG').value = mpg;
+            document.getElementById('activeVehicleName').value = name;
+            document.getElementById('displayVehicleName').innerText = name.toUpperCase();
+            document.getElementById('statusVehicle').innerText = `${name.toUpperCase()} | £${rate}/HR | ${mpg} MPG`;
+            showScreen('calculator');
+            update();
+        }
+
+        // --- MAPS & LOGIC ---
         let map, directionsRenderer, directionsService, pickupAuto, deliveryAuto;
         function initMap() {
             directionsService = new google.maps.DirectionsService();
@@ -257,11 +251,9 @@
             const p = document.getElementById('pickup').value;
             const d = document.getElementById('delivery').value;
             if (p.length < 5 || d.length < 5) return;
-            
             let wps = [];
             const waypointLines = document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2);
             waypointLines.forEach(l => { wps.push({ location: l.trim(), stopover: true }); });
-
             directionsService.route({ origin: p, destination: d, waypoints: wps, travelMode: google.maps.TravelMode.DRIVING }, (res, stat) => {
                 if (stat === 'OK') {
                     directionsRenderer.setDirections(res);
@@ -290,61 +282,39 @@
             let subtotal = (fuel + time) * 1.25;
 
             let extra = 0;
-            if(document.getElementById('multiDropCheck').checked) {
-                extra += document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).length * 50;
-            }
+            if(document.getElementById('multiDropCheck').checked) extra += (document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).length * 50);
             if(document.getElementById('checkTailLift').checked) extra += 50;
             if(document.getElementById('checkPre10').checked) extra += 25;
-            
-            const col = document.getElementById('colDate').value;
-            const del = document.getElementById('delDate').value;
-            if(col && del && col !== del) extra += 50;
+            if(document.getElementById('colDate').value !== document.getElementById('delDate').value && document.getElementById('colDate').value && document.getElementById('delDate').value) extra += 50;
 
             const total = Math.ceil(((subtotal + extra) - 0.01) / 10) * 10;
             document.getElementById('totalDisp').innerText = '£' + (total || 0).toFixed(2);
-
-            document.getElementById('breakdown').innerHTML = `
-                <div class="flex justify-between border-b border-slate-700/50 pb-2"><span>Asset Operations</span><span>£${subtotal.toFixed(2)}</span></div>
-                <div class="text-[9px] opacity-60 uppercase italic">Applied: £${rate}/hr & ${mpg} MPG</div>
-                ${extra > 0 ? `<div class="flex justify-between text-red-400 mt-2"><span>Surcharges</span><span>£${extra.toFixed(2)}</span></div>` : ''}
-            `;
+            document.getElementById('breakdown').innerHTML = `<div class='flex justify-between'><span>Asset Operations</span><span>£${subtotal.toFixed(2)}</span></div>${extra > 0 ? `<div class='flex justify-between text-red-400'><span>Surcharges</span><span>£${extra.toFixed(2)}</span></div>` : ''}`;
         }
 
-        function toggleMultiDrop() { document.getElementById('waypointContainer').style.display = document.getElementById('multiDropCheck').checked ? 'block' : 'none'; calculate(); }
-        function toggleManual() { const m = document.getElementById('manualMode').checked; document.getElementById('mileInput').disabled = !m; document.getElementById('timeInput').disabled = !m; }
-        function validateDates() { const col = document.getElementById('colDate'); const del = document.getElementById('delDate'); if(col.value) del.min = col.value; }
-
+        // --- v8.4 PDF ENGINE ---
         function downloadQuote() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const vehicle = document.getElementById('activeVehicleName').value;
-            
-            doc.setFillColor(195, 32, 38); doc.rect(0, 0, 210, 30, 'F');
-            doc.setTextColor(255, 255, 255); doc.setFontSize(20); doc.text("FROST TRANSPORT QUOTATION", 20, 20);
-            
-            doc.setTextColor(0); doc.setFontSize(10);
-            doc.text(`VEHICLE ASSET: ${vehicle}`, 20, 45);
-            doc.text(`HOURLY RATE: £${document.getElementById('activeRate').value}`, 20, 52);
-            doc.text(`FUEL EFFICIENCY: ${document.getElementById('activeMPG').value} MPG`, 20, 59);
-            doc.text(`TOTAL ESTIMATE: ${document.getElementById('totalDisp').innerText}`, 20, 66);
-            
+            doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(195, 32, 38); doc.text("FROST TRANSPORT SOLUTIONS", 20, 25);
+            doc.setFontSize(10); doc.setTextColor(100); doc.text("OFFICIAL TRANSPORT QUOTATION", 20, 32); doc.line(20, 35, 190, 35);
             doc.autoTable({
-                startY: 75,
-                head: [['Key Attribute', 'Data Input']],
+                startY: 45, theme: 'grid',
+                headStyles: { fillColor: [15, 23, 42], fontStyle: 'bold' },
                 body: [
-                    ['Collection Point', document.getElementById('pickup').value],
-                    ['Delivery Point', document.getElementById('delivery').value],
-                    ['Total Distance', document.getElementById('mileInput').value + " Miles"],
-                    ['Asset Assigned', vehicle]
+                    ['Vehicle Asset', document.getElementById('activeVehicleName').value.toUpperCase()],
+                    ['Operational Rate', `£${document.getElementById('activeRate').value} per hour`],
+                    ['Collection Point', document.getElementById('pickup').value.toUpperCase()],
+                    ['Delivery Point', document.getElementById('delivery').value.toUpperCase()],
+                    ['Est. Distance', document.getElementById('mileInput').value + " Miles"],
+                    ['Total Estimate (Ex. VAT)', document.getElementById('totalDisp').innerText]
                 ]
             });
-            doc.save(`FrostQuote_${vehicle}.pdf`);
+            doc.save(`Frost_Quote.pdf`);
         }
 
         async function saveJob() {
-            const btn = document.getElementById('submitBtn');
-            btn.innerText = "PROCESSING..."; btn.disabled = true;
-
+            const btn = document.getElementById('submitBtn'); btn.innerText = "SAVING..."; btn.disabled = true;
             const { error } = await sb.from('quotes').insert([{
                 pickup: document.getElementById('pickup').value,
                 delivery: document.getElementById('delivery').value,
@@ -354,10 +324,13 @@
                 vehicle_type: document.getElementById('activeVehicleName').value,
                 status: 'pending'
             }]);
-
-            if (error) { alert("Error: " + error.message); btn.innerText = "Submit Enquiry"; btn.disabled = false; }
-            else { alert("QUOTATION SENT TO OPERATIONS TEAM"); location.reload(); }
+            if (error) { alert("Submission Error"); btn.innerText = "Submit Enquiry"; btn.disabled = false; }
+            else { alert("QUOTATION SAVED TO OPERATIONS"); location.reload(); }
         }
+
+        function toggleMultiDrop() { document.getElementById('waypointContainer').style.display = document.getElementById('multiDropCheck').checked ? 'block' : 'none'; calculate(); }
+        function toggleManual() { const m = document.getElementById('manualMode').checked; document.getElementById('mileInput').disabled = !m; document.getElementById('timeInput').disabled = !m; }
+        function validateDates() { const col = document.getElementById('colDate'); const del = document.getElementById('delDate'); if(col.value) del.min = col.value; }
     </script>
 </body>
 </html>
