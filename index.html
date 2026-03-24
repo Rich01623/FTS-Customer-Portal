@@ -16,8 +16,7 @@
         :root { --frost-red: #c32026; --frost-dark-navy: #0f172a; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background-image: url('Pic-35-1.png'); background-size: cover; background-attachment: fixed; padding-bottom: 60px; }
         
-        /* UPDATED: WHITE OVERLAY OPACITY REDUCED TO 0.85 */
-        body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.85); z-index: 0; }
+        body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.82); z-index: 0; }
         
         .app-screen { display: none !important; position: relative; z-index: 10; }
         .active-screen { display: block !important; }
@@ -45,7 +44,15 @@
         #map { width: 100%; height: 450px; border-radius: 4px; border: 1px solid #cbd5e1; }
         .summary-sidebar { position: sticky; top: 20px; background: #0f172a; color: white; min-height: 580px; }
         .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; background: #0f172a; color: #64748b; font-size: 9px; display: flex; align-items: center; padding: 0 20px; font-weight: 800; text-transform: uppercase; z-index: 50; border-top: 1px solid #334155; }
-        .logo-large { filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)); }
+        
+        /* SHADOWS TO ENSURE VISIBILITY ON TRANSPARENT BG */
+        .logo-large { filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.15)); }
+
+        /* NEW FULLY TRANSPARENT HEADER STYLE */
+        .crystal-header { 
+            background: transparent; 
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -104,17 +111,19 @@
         </div>
     </div>
 
-    <div id="screen-calculator" class="app-screen max-w-[1600px] mx-auto pt-8 px-6">
-        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded shadow-sm border border-slate-200">
+    <div id="screen-calculator" class="app-screen max-w-[1600px] mx-auto pt-4 px-6">
+        <header class="flex justify-between items-center mb-8 crystal-header p-6">
             <div class="flex items-center gap-10">
-                <img src="logo.png" alt="Frost" class="h-28 logo-large">
-                <button onclick="showScreen('fleet')" class="text-[10px] font-black text-red-600 uppercase border-2 border-red-600 px-4 py-2 rounded hover:bg-red-600 hover:text-white transition-all">
-                    <i class="fa-solid fa-rotate mr-2"></i> Change Asset: <span id="displayVehicleName"></span>
+                <img src="logo.png" alt="Frost" class="h-24 logo-large">
+                <button onclick="showScreen('fleet')" class="text-[10px] font-black text-slate-800 uppercase border-2 border-slate-800/20 bg-white/60 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                    <i class="fa-solid fa-rotate mr-2"></i> Asset: <span id="displayVehicleName" class="text-red-600"></span>
                 </button>
             </div>
-            <div class="flex items-center gap-4">
-                <div id="userBadge" class="text-xs font-black uppercase italic text-slate-800 border-r pr-4">CONNECTED</div>
-                <button onclick="handleLogout()" class="text-[10px] font-bold text-red-600 uppercase hover:underline">Logout</button>
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <div id="userBadge" class="text-xs font-black uppercase italic text-slate-900">CONNECTED</div>
+                    <button onclick="handleLogout()" class="text-[9px] font-bold text-red-600 uppercase tracking-widest hover:underline">Sign Out</button>
+                </div>
             </div>
         </header>
 
@@ -180,7 +189,7 @@
     </div>
 
     <footer class="status-bar">
-        <div>CORE ENGINE: <span class="text-white">FROST-V10.3</span></div>
+        <div>CORE ENGINE: <span class="text-white">FROST-V10.5</span></div>
         <div class="ml-auto" id="statusVehicle">AWAITING ASSET SELECTION</div>
     </footer>
 
@@ -189,7 +198,6 @@
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
 
-        // --- AUTH & PERSISTENCE ---
         window.onload = async () => {
             const { data: { session }, error } = await sb.auth.getSession();
             if (session && !error) { setupUser(session.user); showScreen('fleet'); }
@@ -234,7 +242,6 @@
             update();
         }
 
-        // --- MAPS & LOGIC ---
         let map, directionsRenderer, directionsService, pickupAuto, deliveryAuto;
         function initMap() {
             directionsService = new google.maps.DirectionsService();
@@ -292,7 +299,6 @@
             document.getElementById('breakdown').innerHTML = `<div class='flex justify-between'><span>Asset Operations</span><span>£${subtotal.toFixed(2)}</span></div>${extra > 0 ? `<div class='flex justify-between text-red-400'><span>Surcharges</span><span>£${extra.toFixed(2)}</span></div>` : ''}`;
         }
 
-        // --- v8.4 PDF ENGINE ---
         function downloadQuote() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
