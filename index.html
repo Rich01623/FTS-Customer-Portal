@@ -8,258 +8,238 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=geometry,places&callback=initMap"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=places&v=weekly&callback=initMap" async defer></script>
     
     <style>
-        :root { --frost-red: #c32026; --frost-grey: #1e293b; --frost-dark-navy: #0f172a; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-image: url('Pic-35-1.png'); background-size: cover; background-attachment: fixed; }
-        body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.9); z-index: 0; }
+        :root { --frost-red: #c32026; --frost-dark-navy: #0f172a; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-image: url('Pic-35-1.png'); background-size: cover; background-attachment: fixed; padding-bottom: 60px; }
+        body::before { content: ""; position: fixed; inset: 0; background: rgba(241, 245, 249, 0.96); z-index: 0; }
         
-        #authOverlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(12px); z-index: 100; display: none; align-items: center; justify-content: center; }
-        .frost-card { position: relative; z-index: 10; background: rgba(255, 255, 255, 0.9); border-radius: 6px; border: 1px solid rgba(203, 213, 225, 0.6); box-shadow: 0 10px 15px rgba(0,0,0,0.05); overflow: hidden; }
-        .card-header-bar { height: 6px; background: var(--frost-dark-navy); width: 100%; }
-        .frost-input { height: 42px; border: 1px solid #cbd5e1; padding: 0 0.75rem; border-radius: 4px; width: 100%; background: white; font-size: 0.85rem; outline: none; }
-        .frost-input:focus { border-color: var(--frost-red); }
+        .app-screen { display: none !important; position: relative; z-index: 10; }
+        .active-screen { display: block !important; }
+        
+        #authOverlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(12px); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .frost-card { background: white; border-radius: 6px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .frost-input { height: 42px; border: 1px solid #cbd5e1; padding: 0 0.75rem; border-radius: 4px; width: 100%; font-size: 0.85rem; outline: none; }
         .label-text { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        header, main { position: relative; z-index: 20; }
-        .btn-primary { background: var(--frost-red); color: white; font-weight: 900; text-transform: uppercase; transition: all 0.2s; cursor: pointer; }
-        .section-header-red { font-size: 14px; font-weight: 900; color: var(--frost-red); text-transform: uppercase; font-style: italic; }
+        .btn-primary { background: var(--frost-red); color: white; font-weight: 900; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+        .btn-primary:hover { background: #a31a1f; transform: translateY(-1px); }
         
-        #map { width: 100%; height: 250px; border-radius: 4px; }
-        .map-wrapper { background: #e2e8f0; padding: 4px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1); }
-        .parking-badge { display: none; font-size: 9px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 2px 6px; border-radius: 99px; margin-top: 4px; font-weight: 800; }
+        .vehicle-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 2px solid transparent; background: white; }
+        .vehicle-card:hover { transform: translateY(-8px); border-color: var(--frost-red); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        
+        #map { width: 100%; height: 450px; border-radius: 4px; border: 1px solid #cbd5e1; }
+        .summary-sidebar { position: sticky; top: 20px; background: #0f172a; color: white; min-height: 580px; }
+        .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; background: #0f172a; color: #64748b; font-size: 9px; display: flex; align-items: center; padding: 0 20px; font-weight: 800; text-transform: uppercase; z-index: 50; border-top: 1px solid #334155; }
     </style>
 </head>
-<body class="p-8">
+<body>
 
     <div style="display: none;">
-        <input type="text" id="custName">
-        <input type="text" id="custCompany">
-        <input type="text" id="custPhone">
-        <input type="text" id="custEmail">
+        <input type="hidden" id="custName"><input type="hidden" id="custEmail"><input type="hidden" id="userId">
+        <input type="hidden" id="activeRate"><input type="hidden" id="activeMPG"><input type="hidden" id="activeVehicleName">
     </div>
 
-    <div id="authOverlay">
-        <div class="bg-white p-10 rounded-lg shadow-2xl w-[450px] border-b-8 border-red-600 flex flex-col items-center">
-            <img src="logo.png" alt="Frost Transport" class="h-28 w-auto mb-8">
-            
-            <div id="authTitle" class="text-xl font-black italic mb-6 text-slate-800 uppercase tracking-tight">Portal Login</div>
-            
-            <div id="loginForm" class="space-y-4 w-full">
-                <div id="signUpFields" class="hidden space-y-4 mb-4">
-                    <input type="text" id="regName" placeholder="Full Name" class="frost-input">
-                    <input type="text" id="regCompany" placeholder="Company Name" class="frost-input">
-                </div>
-                <input type="email" id="email" placeholder="Email Address" class="frost-input">
-                <input type="password" id="password" placeholder="Password" class="frost-input">
-                
-                <button id="authBtn" onclick="handleAuth()" class="w-full btn-primary py-4 rounded text-sm tracking-widest shadow-lg">Login to System</button>
-                
-                <div class="text-center mt-6">
-                    <button onclick="toggleAuthMode()" id="toggleBtn" class="text-[10px] font-bold text-slate-500 uppercase hover:text-red-600">No account? Create one here</button>
+    <div id="screen-auth" class="app-screen active-screen">
+        <div id="authOverlay">
+            <div class="bg-white p-10 rounded-lg shadow-2xl w-[450px] border-b-8 border-red-600 flex flex-col items-center text-center">
+                <img src="logo.png" alt="Frost" class="h-24 mb-8">
+                <h2 class="text-xl font-black italic mb-6 text-slate-800 uppercase tracking-tight">Enterprise Booking Portal</h2>
+                <div class="space-y-4 w-full">
+                    <input type="email" id="email" placeholder="Email Address" class="frost-input">
+                    <input type="password" id="password" placeholder="Password" class="frost-input">
+                    <button onclick="handleAuth()" id="loginBtn" class="w-full btn-primary py-4 rounded shadow-lg">Secure Login</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <header class="max-w-[1600px] mx-auto mb-8 flex justify-between items-center border-b-2 border-slate-300 pb-6">
-        <div>
-            <img src="logo.png" alt="Frost Transport" class="h-24 w-auto mb-2">
-            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest italic">Client Booking & Quote Engine | <span class="text-red-600">v7.8 Deployment Build</span></p>
+    <div id="screen-fleet" class="app-screen max-w-[1200px] mx-auto py-16 px-6">
+        <div class="text-center mb-10">
+            <img src="logo.png" alt="Frost" class="h-16 mx-auto mb-4">
+            <h1 class="text-4xl font-black italic uppercase text-slate-800 tracking-tighter">Choose Your Vehicle</h1>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Dynamic Rates & MPG applied to your selection</p>
         </div>
-        <div class="text-right">
-            <div id="userBadge" class="text-xs font-black bg-white px-4 py-2 rounded border mb-2 uppercase italic text-red-600 tracking-tighter">Validating...</div>
-            <button onclick="logout()" class="text-[10px] font-bold text-red-600 uppercase border border-red-600 px-3 py-1 rounded hover:bg-red-50">Logout</button>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="vehicle-card p-6 rounded-lg shadow-lg text-center" onclick="selectVehicle('44T Articulated', 65.85, 8)">
+                <i class="fa-solid fa-truck-moving text-3xl text-red-600 mb-4"></i>
+                <h3 class="text-xl font-black uppercase italic">44T Artic</h3>
+                <div class="text-[9px] font-bold text-slate-400 uppercase mb-4">Efficiency: 8 MPG</div>
+                <div class="border-t pt-4 font-black text-slate-700 italic text-lg">£65.85<span class="text-xs">/hr</span></div>
+            </div>
+
+            <div class="vehicle-card p-6 rounded-lg shadow-lg text-center" onclick="selectVehicle('26T Rigid', 56.37, 13)">
+                <i class="fa-solid fa-truck text-3xl text-red-600 mb-4"></i>
+                <h3 class="text-xl font-black uppercase italic">26T Rigid</h3>
+                <div class="text-[9px] font-bold text-slate-400 uppercase mb-4">Efficiency: 13 MPG</div>
+                <div class="border-t pt-4 font-black text-slate-700 italic text-lg">£56.37<span class="text-xs">/hr</span></div>
+            </div>
+
+            <div class="vehicle-card p-6 rounded-lg shadow-lg text-center" onclick="selectVehicle('7.5T Rigid', 54.44, 17)">
+                <i class="fa-solid fa-truck-front text-3xl text-red-600 mb-4"></i>
+                <h3 class="text-xl font-black uppercase italic">7.5T Rigid</h3>
+                <div class="text-[9px] font-bold text-slate-400 uppercase mb-4">Efficiency: 17 MPG</div>
+                <div class="border-t pt-4 font-black text-slate-700 italic text-lg">£54.44<span class="text-xs">/hr</span></div>
+            </div>
+
+            <div class="vehicle-card p-6 rounded-lg shadow-lg text-center" onclick="selectVehicle('Luton Express', 50.80, 22)">
+                <i class="fa-solid fa-van-shuttle text-3xl text-red-600 mb-4"></i>
+                <h3 class="text-xl font-black uppercase italic">Luton Express</h3>
+                <div class="text-[9px] font-bold text-slate-400 uppercase mb-4">Efficiency: 22 MPG</div>
+                <div class="border-t pt-4 font-black text-slate-700 italic text-lg">£50.80<span class="text-xs">/hr</span></div>
+            </div>
         </div>
-    </header>
+    </div>
 
-    <main class="max-w-[1600px] mx-auto grid grid-cols-12 gap-6">
-        <div class="col-span-9 space-y-6">
-            <div class="grid grid-cols-2 gap-6">
-                <section class="frost-card">
-                    <div class="card-header-bar"></div>
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="section-header-red">01. Journey Logistics</h3>
-                            <button onclick="clearJourney()" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-red-600 transition-colors">Clear Route</button>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <span class="label-text">Client Reference / PO Number</span>
-                            <input type="text" id="jobRef" class="frost-input font-bold" placeholder="Optional">
-                        </div>
+    <div id="screen-calculator" class="app-screen max-w-[1600px] mx-auto pt-8 px-6">
+        <header class="flex justify-between items-center mb-8 bg-white p-4 rounded shadow-sm border border-slate-200">
+            <div class="flex items-center gap-6">
+                <img src="logo.png" alt="Frost" class="h-16">
+                <button onclick="showScreen('fleet')" class="text-[10px] font-black text-red-600 uppercase border-2 border-red-600 px-4 py-2 rounded hover:bg-red-600 hover:text-white transition-all">
+                    <i class="fa-solid fa-rotate mr-2"></i> Change Asset: <span id="displayVehicleName"></span>
+                </button>
+            </div>
+            <div id="userBadge" class="text-xs font-black uppercase italic text-red-600 border px-3 py-1 rounded">CONNECTED</div>
+        </header>
 
+        <main class="grid grid-cols-12 gap-6">
+            <div class="col-span-12 lg:col-span-9 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <section class="frost-card p-6 border-t-8 border-slate-800">
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">01. Journey Routing</h3>
                         <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <span class="label-text">Collection Date</span>
-                                <input type="date" id="colDate" class="frost-input font-bold" onchange="update()">
-                            </div>
-                            <div>
-                                <span class="label-text">Delivery Date</span>
-                                <input type="date" id="delDate" class="frost-input font-bold" onchange="update()">
-                                <div id="parkingAlert" class="parking-badge"><i class="fa-solid fa-shield-halved mr-1"></i> SECURE OVERNIGHT PARKING APPLIED</div>
-                            </div>
+                            <div><span class="label-text">Collection</span><input type="date" id="colDate" class="frost-input font-bold" onchange="validateDates(); update();"></div>
+                            <div><span class="label-text">Delivery</span><input type="date" id="delDate" class="frost-input font-bold" onchange="update()"></div>
                         </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div><span class="label-text">Collection Point</span><input type="text" id="pickup" class="frost-input uppercase font-bold" onchange="calculate()" placeholder="POSTCODE"></div>
-                            <div><span class="label-text">Final Delivery</span><input type="text" id="delivery" class="frost-input uppercase font-bold" onchange="calculate()" placeholder="POSTCODE"></div>
+                        <div class="space-y-4 mb-4">
+                            <input type="text" id="pickup" class="frost-input uppercase font-bold" placeholder="COLLECTION POSTCODE / ADDRESS">
+                            <input type="text" id="delivery" class="frost-input uppercase font-bold" placeholder="DELIVERY POSTCODE / ADDRESS">
                         </div>
-                        
-                        <div id="waypointContainer" style="display: none;" class="mb-4 bg-slate-50 p-4 rounded border border-slate-200">
-                            <span class="label-text text-red-600 font-black">Intermediate Drops (£50 per stop)</span>
-                            <textarea id="waypoints" class="frost-input uppercase text-xs font-bold h-24 py-2 mb-3" placeholder="Enter postcodes - one per line" oninput="update()" onchange="calculate()"></textarea>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="optToggle" class="w-4 h-4 accent-red-600" onchange="calculate()">
-                                <span class="text-[10px] font-black uppercase text-slate-500 italic">Auto-Optimise Waypoint Order</span>
-                            </label>
+                        <div class="flex gap-4 mb-4">
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="multiDropCheck" onchange="toggleMultiDrop()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Multi-Drop</span></label>
+                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="manualMode" onchange="toggleManual()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Manual Override</span></label>
                         </div>
-
-                        <div class="flex gap-6 mb-6">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="multiDropCheck" class="w-4 h-4 accent-red-600" onchange="toggleMultiDrop()"><span class="label-text" style="margin:0">Multi-Drop Mode</span></label>
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="manualMode" class="w-4 h-4 accent-red-600" onchange="toggleManual()"><span class="label-text" style="margin:0">Manual Override</span></label>
+                        <div id="waypointContainer" style="display: none;" class="mb-4 bg-slate-50 p-4 rounded border">
+                            <span class="label-text text-red-600">Intermediate Stops (£50/ea)</span>
+                            <textarea id="waypoints" class="frost-input h-20 uppercase text-xs pt-2" placeholder="Enter stops (one per line)" onchange="calculate()"></textarea>
                         </div>
-
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="p-3 bg-slate-50 rounded-lg text-center border border-slate-100"><span class="label-text">Calculated Miles</span><input type="number" id="mileInput" class="w-full text-center font-black text-xl bg-transparent border-none text-slate-800" value="0" oninput="update()" disabled></div>
-                            <div class="p-3 bg-slate-50 rounded-lg text-center border border-slate-100"><span class="label-text">Est. Transit (Hrs)</span><input type="number" id="timeInput" step="0.01" class="w-full text-center font-black text-xl bg-transparent border-none text-slate-800" value="0.00" oninput="update()" disabled></div>
+                            <div class="p-3 bg-slate-50 border text-center rounded"><span class="label-text">Est. Miles</span><input type="number" id="mileInput" class="w-full text-center font-black text-xl bg-transparent" value="0" oninput="update()" disabled></div>
+                            <div class="p-3 bg-slate-50 border text-center rounded"><span class="label-text">Transit Time</span><input type="number" id="timeInput" class="w-full text-center font-black text-xl bg-transparent" value="0.00" oninput="update()" disabled></div>
                         </div>
-                    </div>
-                </section>
+                    </section>
 
-                <section class="frost-card border-t-8 border-slate-800">
-                    <div class="p-6">
-                        <h3 class="section-header-red mb-4">02. Load Requirements</h3>
+                    <section class="frost-card p-6 border-t-8 border-slate-800">
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">02. On-Site Requirements</h3>
                         <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div><span class="label-text">Load Time (Hrs)</span><input type="number" id="loadHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
-                            <div><span class="label-text">Tip Time (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
+                            <div><span class="label-text">Load time (Hrs)</span><input type="number" id="loadHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
+                            <div><span class="label-text">Tip time (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                         </div>
-                        <div class="space-y-3">
-                            <label class="flex items-center p-3 border rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group"><input type="checkbox" id="checkTailLift" onchange="update()" class="w-4 h-4 mr-3 accent-red-600"><span class="flex-grow text-[11px] font-bold uppercase text-slate-600 group-hover:text-red-600">Tail Lift Delivery</span><span class="text-red-600 font-black text-[11px]">£50.00</span></label>
-                            <label class="flex items-center p-3 border rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group"><input type="checkbox" id="checkPre10" onchange="update()" class="w-4 h-4 mr-3 accent-red-600"><span class="flex-grow text-[11px] font-bold uppercase text-slate-600 group-hover:text-red-600">Pre-10am Time Slot</span><span class="text-red-600 font-black text-[11px]">£25.00</span></label>
+                        <div class="space-y-3 mb-4">
+                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Tail Lift Required (+£50)</label>
+                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Pre-10am Delivery Slot (+£25)</label>
                         </div>
-                    </div>
-                </section>
+                        <textarea id="additionalNotes" class="frost-input h-20 uppercase text-[10px] pt-2" placeholder="ADDITIONAL INSTRUCTIONS..."></textarea>
+                    </section>
+                </div>
+                <div id="map" class="shadow-xl"></div>
             </div>
 
-            <div class="map-wrapper shadow-xl">
-                <div id="map"></div>
-            </div>
-        </div>
-
-        <div class="col-span-3">
-            <div class="bg-slate-900 text-white p-6 h-full rounded-lg shadow-2xl flex flex-col justify-between border-4 border-slate-800">
-                <div>
-                    <h2 class="text-red-500 font-black italic uppercase tracking-widest text-[11px] mb-6 border-b border-slate-700 pb-3 flex justify-between">Job Summary <i class="fa-solid fa-file-invoice-dollar"></i></h2>
-                    <div class="mb-6 bg-slate-800/50 p-4 rounded-lg">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rate Breakdown</span>
-                        <div id="breakdown" class="mt-3 space-y-2 text-[12px] font-mono text-slate-300"></div>
+            <div class="col-span-12 lg:col-span-3">
+                <div class="summary-sidebar p-8 rounded-lg shadow-2xl flex flex-col justify-between border-b-8 border-red-600">
+                    <div>
+                        <h2 class="text-red-500 font-black italic uppercase text-[12px] mb-8 border-b border-slate-700 pb-4">Live Quote</h2>
+                        <div id="breakdown" class="space-y-4 text-[13px] font-mono text-slate-300"></div>
+                    </div>
+                    <div>
+                        <div class="text-center mb-8">
+                            <span class="label-text text-slate-500 text-xs">Total Estimate (Ex. VAT)</span>
+                            <div id="totalDisp" class="text-6xl font-black italic tracking-tighter text-white mt-2">£0.00</div>
+                        </div>
+                        <button id="submitBtn" onclick="saveJob()" class="w-full btn-primary py-5 rounded-lg font-black text-lg mb-3 shadow-lg">Submit Enquiry</button>
+                        <button onclick="downloadQuote()" class="w-full bg-slate-800 py-4 rounded-lg font-black text-xs flex items-center justify-center gap-2 text-white hover:bg-slate-700 transition-all"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
                     </div>
                 </div>
-                <div class="pt-6 border-t border-slate-700">
-                    <div class="text-center mb-6"><span class="label-text text-slate-500 text-xs">Total Cost (Excl. VAT)</span><div id="totalDisp" class="text-5xl font-black italic tracking-tighter text-white mt-1">£0.00</div></div>
-                    <button id="confirmBtn" onclick="saveJob()" class="w-full btn-primary py-5 rounded-lg font-black text-sm shadow-2xl active:scale-95 transition-all hover:bg-red-700">CONFIRM BOOKING</button>
-                </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
+
+    <footer class="status-bar">
+        <div>CORE ENGINE: <span class="text-white">FROST-V9.7</span></div>
+        <div class="ml-auto" id="statusVehicle">AWAITING ASSET SELECTION</div>
+    </footer>
 
     <script>
-        const HOURLY_TOTAL = 61.241826; 
-        const MPG = 8;
-        const LTR_GAL = 4.546;
+        // NAVIGATION
+        function showScreen(screenId) {
+            document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active-screen'));
+            document.getElementById('screen-' + screenId).classList.add('active-screen');
+            window.scrollTo(0, 0);
+        }
 
+        function selectVehicle(name, rate, mpg) {
+            document.getElementById('activeRate').value = rate;
+            document.getElementById('activeMPG').value = mpg;
+            document.getElementById('activeVehicleName').value = name;
+            document.getElementById('displayVehicleName').innerText = name.toUpperCase();
+            document.getElementById('statusVehicle').innerText = `${name.toUpperCase()} | RATE: £${rate}/hr | MPG: ${mpg}`;
+            showScreen('calculator');
+            update();
+        }
+
+        // SUPABASE
         const _URL = "https://tdrzytgiqvdulityqttr.supabase.co";
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
 
-        let map, directionsRenderer, directionsService;
-        let isSignUp = false;
-
-        function initMap() {
-            directionsService = new google.maps.DirectionsService();
-            directionsRenderer = new google.maps.DirectionsRenderer({
-                polylineOptions: { strokeColor: "#c32026", strokeWeight: 5, strokeOpacity: 0.9 }
-            });
-            map = new google.maps.Map(document.getElementById("map"), {
-                zoom: 6, center: { lat: 52.355, lng: -1.174 }, disableDefaultUI: true
-            });
-            directionsRenderer.setMap(map);
-        }
-
-        window.onload = async () => {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session?.user) setupUser(session.user);
-            else document.getElementById('authOverlay').style.display = 'flex';
-        };
-
-        function toggleAuthMode() {
-            isSignUp = !isSignUp;
-            document.getElementById('signUpFields').classList.toggle('hidden');
-            document.getElementById('authTitle').innerText = isSignUp ? 'Create Account' : 'Portal Login';
-            document.getElementById('authBtn').innerText = isSignUp ? 'Sign Up' : 'Login to System';
-            document.getElementById('toggleBtn').innerText = isSignUp ? 'Back to Login' : 'No account? Create one here';
-        }
-
         async function handleAuth() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            if (isSignUp) {
-                const fullName = document.getElementById('regName').value;
-                const company = document.getElementById('regCompany').value;
-                const { data, error } = await sb.auth.signUp({
-                    email, password, options: { data: { full_name: fullName, company: company } }
-                });
-                if (error) alert(error.message);
-                else alert("Account created! Check your email for verification.");
-            } else {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) alert(error.message);
-                else setupUser(data.user);
-            }
+            const btn = document.getElementById('loginBtn');
+            btn.innerText = "AUTHENTICATING...";
+            const { data, error } = await sb.auth.signInWithPassword({
+                email: document.getElementById('email').value, password: document.getElementById('password').value
+            });
+            if (error) { alert("Access Denied"); btn.innerText = "Secure Login"; }
+            else { setupUser(data.user); showScreen('fleet'); }
         }
 
         function setupUser(user) {
-            document.getElementById('authOverlay').style.display = 'none';
             document.getElementById('userBadge').innerText = user.user_metadata.full_name || user.email;
-            document.getElementById('custName').value = user.user_metadata.full_name || "";
-            document.getElementById('custCompany').value = user.user_metadata.company || "";
+            document.getElementById('custName').value = user.user_metadata.full_name || "Client";
             document.getElementById('custEmail').value = user.email;
-            update();
+            document.getElementById('userId').value = user.id;
         }
 
-        function toggleMultiDrop() {
-            document.getElementById('waypointContainer').style.display = document.getElementById('multiDropCheck').checked ? 'block' : 'none';
-            calculate();
-        }
-
-        function toggleManual() {
-            document.getElementById('mileInput').disabled = !document.getElementById('manualMode').checked;
-            document.getElementById('timeInput').disabled = !document.getElementById('manualMode').checked;
+        // GOOGLE MAPS
+        let map, directionsRenderer, directionsService, pickupAuto, deliveryAuto;
+        function initMap() {
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({ polylineOptions: { strokeColor: "#c32026", strokeWeight: 5 } });
+            map = new google.maps.Map(document.getElementById("map"), { zoom: 6, center: { lat: 52.3, lng: -1.1 }, disableDefaultUI: true });
+            directionsRenderer.setMap(map);
+            pickupAuto = new google.maps.places.Autocomplete(document.getElementById('pickup'));
+            deliveryAuto = new google.maps.places.Autocomplete(document.getElementById('delivery'));
+            pickupAuto.addListener('place_changed', calculate);
+            deliveryAuto.addListener('place_changed', calculate);
         }
 
         function calculate() {
             const p = document.getElementById('pickup').value;
             const d = document.getElementById('delivery').value;
-            if (p.length < 3 || d.length < 3) return;
-
+            if (p.length < 5 || d.length < 5) return;
+            
             let wps = [];
-            if (document.getElementById('multiDropCheck').checked) {
-                document.getElementById('waypoints').value.split('\n').forEach(l => { 
-                    if(l.trim().length > 2) wps.push({location:l.trim(), stopover:true}); 
-                });
-            }
+            const waypointLines = document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2);
+            waypointLines.forEach(l => { wps.push({ location: l.trim(), stopover: true }); });
 
-            directionsService.route({
-                origin: p, destination: d, waypoints: wps, 
-                optimizeWaypoints: document.getElementById('optToggle').checked, 
-                travelMode: 'DRIVING'
-            }, (res, stat) => {
+            directionsService.route({ origin: p, destination: d, waypoints: wps, travelMode: google.maps.TravelMode.DRIVING }, (res, stat) => {
                 if (stat === 'OK') {
                     directionsRenderer.setDirections(res);
-                    let m = 0; let s = 0;
-                    res.routes[0].legs.forEach(leg => { m += leg.distance.value; s += leg.duration.value; });
+                    const route = res.routes[0];
+                    let m = 0, s = 0;
+                    route.legs.forEach(leg => { m += leg.distance.value; s += leg.duration.value; });
                     if(!document.getElementById('manualMode').checked) {
                         document.getElementById('mileInput').value = Math.round((m * 0.000621371) * 1.05);
                         document.getElementById('timeInput').value = ((s / 3600) * 1.25).toFixed(2);
@@ -269,65 +249,89 @@
             });
         }
 
+        // MATH ENGINE
         function update() {
-            const margin = 1.25; 
-            const ppl = 1.25;
+            const rate = parseFloat(document.getElementById('activeRate').value) || 0;
+            const mpg = parseFloat(document.getElementById('activeMPG').value) || 1;
             const miles = parseFloat(document.getElementById('mileInput').value) || 0;
-            const totalHrs = (parseFloat(document.getElementById('timeInput').value) || 0) + 
-                             (parseFloat(document.getElementById('loadHrs').value) || 0) + 
-                             (parseFloat(document.getElementById('tipHrs').value) || 0);
-            
-            const costTime = totalHrs * HOURLY_TOTAL;
-            const costFuel = (miles / MPG) * LTR_GAL * ppl;
-            const transportSubtotal = (costTime + costFuel) * margin;
+            const driveHrs = parseFloat(document.getElementById('timeInput').value) || 0;
+            const loadHrs = parseFloat(document.getElementById('loadHrs').value) || 0;
+            const tipHrs = parseFloat(document.getElementById('tipHrs').value) || 0;
 
-            let flatFees = 0;
-            let dropCount = 0;
-            
-            const cDate = document.getElementById('colDate').value;
-            const dDate = document.getElementById('delDate').value;
-            let parkingApplied = false;
-            if(cDate && dDate && cDate !== dDate) { flatFees += 50; parkingApplied = true; document.getElementById('parkingAlert').style.display = 'inline-block'; }
-            else { document.getElementById('parkingAlert').style.display = 'none'; }
+            const fuel = (miles / mpg) * 4.546 * 1.25;
+            const time = (driveHrs + loadHrs + tipHrs) * rate;
+            let subtotal = (fuel + time) * 1.25;
 
-            if(document.getElementById('checkTailLift').checked) flatFees += 50;
-            if(document.getElementById('checkPre10').checked) flatFees += 25;
+            let extra = 0;
             if(document.getElementById('multiDropCheck').checked) {
-                document.getElementById('waypoints').value.split('\n').forEach(line => { if(line.trim().length > 2) dropCount++; });
-                flatFees += (dropCount * 50);
+                extra += document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).length * 50;
             }
+            if(document.getElementById('checkTailLift').checked) extra += 50;
+            if(document.getElementById('checkPre10').checked) extra += 25;
+            
+            const col = document.getElementById('colDate').value;
+            const del = document.getElementById('delDate').value;
+            if(col && del && col !== del) extra += 50;
 
-            const finalQuote = Math.ceil(((transportSubtotal + flatFees) - 0.01) / 10) * 10;
-            document.getElementById('totalDisp').innerText = '£' + (finalQuote || 0).toFixed(2);
+            const total = Math.ceil(((subtotal + extra) - 0.01) / 10) * 10;
+            document.getElementById('totalDisp').innerText = '£' + (total || 0).toFixed(2);
+
             document.getElementById('breakdown').innerHTML = `
-                <div class="flex justify-between"><span>Base Transport</span><span>£${transportSubtotal.toFixed(2)}</span></div>
-                ${dropCount > 0 ? `<div class="flex justify-between"><span>Extra Drops (${dropCount})</span><span>£${(dropCount*50).toFixed(2)}</span></div>` : ''}
-                ${parkingApplied ? `<div class="flex justify-between"><span>Secure Parking</span><span>£50.00</span></div>` : ''}
-                ${(flatFees - (dropCount*50) - (parkingApplied ? 50 : 0)) > 0 ? `<div class="flex justify-between"><span>Service Surcharges</span><span>£${(flatFees - (dropCount*50) - (parkingApplied ? 50 : 0)).toFixed(2)}</span></div>` : ''}
+                <div class="flex justify-between border-b border-slate-700/50 pb-2"><span>Asset Operations</span><span>£${subtotal.toFixed(2)}</span></div>
+                <div class="text-[9px] opacity-60 uppercase italic">Applied: £${rate}/hr & ${mpg} MPG</div>
+                ${extra > 0 ? `<div class="flex justify-between text-red-400 mt-2"><span>Surcharges</span><span>£${extra.toFixed(2)}</span></div>` : ''}
             `;
         }
 
+        function toggleMultiDrop() { document.getElementById('waypointContainer').style.display = document.getElementById('multiDropCheck').checked ? 'block' : 'none'; calculate(); }
+        function toggleManual() { const m = document.getElementById('manualMode').checked; document.getElementById('mileInput').disabled = !m; document.getElementById('timeInput').disabled = !m; }
+        function validateDates() { const col = document.getElementById('colDate'); const del = document.getElementById('delDate'); if(col.value) del.min = col.value; }
+
+        // PDF GENERATION
+        function downloadQuote() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const vehicle = document.getElementById('activeVehicleName').value;
+            
+            doc.setFillColor(195, 32, 38); doc.rect(0, 0, 210, 30, 'F');
+            doc.setTextColor(255, 255, 255); doc.setFontSize(20); doc.text("FROST TRANSPORT QUOTATION", 20, 20);
+            
+            doc.setTextColor(0); doc.setFontSize(10);
+            doc.text(`VEHICLE ASSET: ${vehicle}`, 20, 45);
+            doc.text(`HOURLY RATE: £${document.getElementById('activeRate').value}`, 20, 52);
+            doc.text(`FUEL EFFICIENCY: ${document.getElementById('activeMPG').value} MPG`, 20, 59);
+            doc.text(`TOTAL ESTIMATE: ${document.getElementById('totalDisp').innerText}`, 20, 66);
+            
+            doc.autoTable({
+                startY: 75,
+                head: [['Key Attribute', 'Data Input']],
+                body: [
+                    ['Collection Point', document.getElementById('pickup').value],
+                    ['Delivery Point', document.getElementById('delivery').value],
+                    ['Total Distance', document.getElementById('mileInput').value + " Miles"],
+                    ['Asset Assigned', vehicle]
+                ]
+            });
+            doc.save(`FrostQuote_${vehicle}.pdf`);
+        }
+
         async function saveJob() {
-            const payload = {
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "PROCESSING..."; btn.disabled = true;
+
+            const { error } = await sb.from('quotes').insert([{
                 pickup: document.getElementById('pickup').value,
                 delivery: document.getElementById('delivery').value,
                 customer_name: document.getElementById('custName').value,
+                user_id: document.getElementById('userId').value,
                 total_price: parseFloat(document.getElementById('totalDisp').innerText.replace('£','')),
-                collection_date: document.getElementById('colDate').value,
-                delivery_date: document.getElementById('delDate').value,
-                job_ref: document.getElementById('jobRef').value
-            };
-            const { error } = await sb.from('quotes').insert([payload]);
-            if (!error) alert("Booking Confirmed!");
-        }
+                vehicle_type: document.getElementById('activeVehicleName').value,
+                status: 'pending'
+            }]);
 
-        function clearJourney() {
-            document.getElementById('pickup').value = ''; document.getElementById('delivery').value = '';
-            document.getElementById('waypoints').value = ''; document.getElementById('mileInput').value = 0;
-            document.getElementById('timeInput').value = '0.00'; update();
+            if (error) { alert("Error: " + error.message); btn.innerText = "Submit Enquiry"; btn.disabled = false; }
+            else { alert("QUOTATION SENT TO OPERATIONS TEAM"); location.reload(); }
         }
-
-        async function logout() { await sb.auth.signOut(); location.reload(); }
     </script>
 </body>
 </html>
