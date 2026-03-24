@@ -23,7 +23,8 @@
         
         #authOverlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(12px); z-index: 100; display: flex; align-items: center; justify-content: center; }
         .frost-card { background: white; border-radius: 6px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .frost-input { height: 42px; border: 1px solid #cbd5e1; padding: 0 0.75rem; border-radius: 4px; width: 100%; font-size: 0.85rem; outline: none; }
+        .frost-input { height: 42px; border: 1px solid #cbd5e1; padding: 0 0.75rem; border-radius: 4px; width: 100%; font-size: 0.85rem; outline: none; transition: border 0.2s; }
+        .frost-input:focus { border-color: var(--frost-red); }
         .label-text { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; margin-bottom: 4px; display: block; }
         .btn-primary { background: var(--frost-red); color: white; font-weight: 900; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
         .btn-primary:hover { background: #a31a1f; transform: translateY(-1px); }
@@ -45,14 +46,8 @@
         .summary-sidebar { position: sticky; top: 20px; background: #0f172a; color: white; min-height: 580px; }
         .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; background: #0f172a; color: #64748b; font-size: 9px; display: flex; align-items: center; padding: 0 20px; font-weight: 800; text-transform: uppercase; z-index: 50; border-top: 1px solid #334155; }
         
-        /* SHADOWS TO ENSURE VISIBILITY ON TRANSPARENT BG */
         .logo-large { filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.15)); }
-
-        /* NEW FULLY TRANSPARENT HEADER STYLE */
-        .crystal-header { 
-            background: transparent; 
-            border: none;
-        }
+        .crystal-header { background: transparent; border: none; }
     </style>
 </head>
 <body>
@@ -66,11 +61,18 @@
         <div id="authOverlay">
             <div class="bg-white p-12 rounded-lg shadow-2xl w-[500px] border-b-8 border-red-600 flex flex-col items-center text-center">
                 <img src="logo.png" alt="Frost" class="h-32 mb-10 logo-large">
-                <h2 class="text-xl font-black italic mb-6 text-slate-800 uppercase tracking-tight">Enterprise Booking Portal</h2>
+                <h2 id="authTitle" class="text-xl font-black italic mb-6 text-slate-800 uppercase tracking-tight">Enterprise Login</h2>
+                
                 <div class="space-y-4 w-full">
                     <input type="email" id="email" placeholder="Email Address" class="frost-input">
                     <input type="password" id="password" placeholder="Password" class="frost-input">
                     <button onclick="handleAuth()" id="loginBtn" class="w-full btn-primary py-4 rounded shadow-lg">Secure Login</button>
+                    
+                    <div class="mt-4">
+                        <button onclick="toggleAuthMode()" id="toggleBtn" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-600 transition-colors">
+                            Register New Account
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,33 +82,32 @@
         <div class="text-center mb-14">
             <img src="logo.png" alt="Frost" class="h-24 mx-auto mb-6 logo-large">
             <h1 class="text-4xl font-black italic uppercase text-slate-800 tracking-tighter">Select Transport Asset</h1>
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Choose a vehicle to begin your live quotation</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('44T Articulated', 65.85, 8)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 28,000kg</p><p>CAPACITY: 26 Pallets</p></div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specs</p><p>PAYLOAD: 28,000kg</p></div>
                 <i class="fa-solid fa-truck-moving text-4xl text-red-600 mb-6"></i>
                 <h3 class="text-xl font-black uppercase italic text-slate-800">44T Artic</h3>
             </div>
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('26T Rigid', 56.37, 13)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 14,000kg</p><p>CAPACITY: 14-16 Pallets</p></div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specs</p><p>PAYLOAD: 14,000kg</p></div>
                 <i class="fa-solid fa-truck text-4xl text-red-600 mb-6"></i>
                 <h3 class="text-xl font-black uppercase italic text-slate-800">26T Rigid</h3>
             </div>
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('7.5T Rigid', 54.44, 17)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 2,500kg</p><p>CAPACITY: 8-10 Pallets</p></div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specs</p><p>PAYLOAD: 2,500kg</p></div>
                 <i class="fa-solid fa-truck text-4xl text-red-600 mb-6"></i>
                 <h3 class="text-xl font-black uppercase italic text-slate-800">7.5T Rigid</h3>
             </div>
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('Luton Express', 50.80, 22)">
                 <i class="fa-solid fa-circle-info info-trigger"></i>
-                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specifications</p><p>PAYLOAD: 1,100kg</p><p>CAPACITY: 4-6 Pallets</p></div>
+                <div class="tooltip-content"><p class="font-bold border-b border-slate-700 mb-1 pb-1 uppercase">Specs</p><p>PAYLOAD: 1,100kg</p></div>
                 <i class="fa-solid fa-van-shuttle text-4xl text-red-600 mb-6"></i>
-                <h3 class="text-xl font-black uppercase italic text-slate-800">Luton Express</h3>
+                <h3 class="text-xl font-black uppercase italic text-slate-800">Luton</h3>
             </div>
         </div>
     </div>
@@ -115,15 +116,13 @@
         <header class="flex justify-between items-center mb-8 crystal-header p-6">
             <div class="flex items-center gap-10">
                 <img src="logo.png" alt="Frost" class="h-24 logo-large">
-                <button onclick="showScreen('fleet')" class="text-[10px] font-black text-slate-800 uppercase border-2 border-slate-800/20 bg-white/60 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                <button onclick="showScreen('fleet')" class="text-[10px] font-black text-slate-800 uppercase border-2 border-slate-800/20 bg-white/60 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition-all">
                     <i class="fa-solid fa-rotate mr-2"></i> Asset: <span id="displayVehicleName" class="text-red-600"></span>
                 </button>
             </div>
-            <div class="flex items-center gap-6">
-                <div class="text-right">
-                    <div id="userBadge" class="text-xs font-black uppercase italic text-slate-900">CONNECTED</div>
-                    <button onclick="handleLogout()" class="text-[9px] font-bold text-red-600 uppercase tracking-widest hover:underline">Sign Out</button>
-                </div>
+            <div class="text-right">
+                <div id="userBadge" class="text-xs font-black uppercase italic text-slate-900 tracking-tight">CONNECTED</div>
+                <button onclick="handleLogout()" class="text-[9px] font-bold text-red-600 uppercase tracking-widest hover:underline">Sign Out</button>
             </div>
         </header>
 
@@ -131,15 +130,13 @@
             <div class="col-span-12 lg:col-span-9 space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <section class="frost-card p-6 border-t-8 border-slate-800">
-                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">01. Journey Routing</h3>
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">01. Routing</h3>
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div><span class="label-text">Collection</span><input type="date" id="colDate" class="frost-input font-bold" onchange="validateDates(); update();"></div>
                             <div><span class="label-text">Delivery</span><input type="date" id="delDate" class="frost-input font-bold" onchange="update()"></div>
                         </div>
-                        <div class="space-y-4 mb-4">
-                            <input type="text" id="pickup" class="frost-input uppercase font-bold" placeholder="COLLECTION ADDRESS">
-                            <input type="text" id="delivery" class="frost-input uppercase font-bold" placeholder="DELIVERY ADDRESS">
-                        </div>
+                        <input type="text" id="pickup" class="frost-input uppercase font-bold mb-4" placeholder="COLLECTION ADDRESS">
+                        <input type="text" id="delivery" class="frost-input uppercase font-bold mb-4" placeholder="DELIVERY ADDRESS">
                         <div class="flex gap-4 mb-4">
                             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="multiDropCheck" onchange="toggleMultiDrop()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Multi-Drop</span></label>
                             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="manualMode" onchange="toggleManual()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Manual Override</span></label>
@@ -154,7 +151,7 @@
                     </section>
 
                     <section class="frost-card p-6 border-t-8 border-slate-800">
-                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">02. On-Site Requirements</h3>
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">02. Requirements</h3>
                         <div class="grid grid-cols-2 gap-4 mb-6">
                             <div><span class="label-text">Load time (Hrs)</span><input type="number" id="loadHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                             <div><span class="label-text">Tip time (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
@@ -189,7 +186,7 @@
     </div>
 
     <footer class="status-bar">
-        <div>CORE ENGINE: <span class="text-white">FROST-V10.5</span></div>
+        <div>CORE ENGINE: <span class="text-white">FROST-V10.7</span></div>
         <div class="ml-auto" id="statusVehicle">AWAITING ASSET SELECTION</div>
     </footer>
 
@@ -198,6 +195,15 @@
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
 
+        let isRegistering = false;
+
+        function toggleAuthMode() {
+            isRegistering = !isRegistering;
+            document.getElementById('authTitle').innerText = isRegistering ? "Register Account" : "Enterprise Login";
+            document.getElementById('loginBtn').innerText = isRegistering ? "Create Account" : "Secure Login";
+            document.getElementById('toggleBtn').innerText = isRegistering ? "Back to Login" : "Register New Account";
+        }
+
         window.onload = async () => {
             const { data: { session }, error } = await sb.auth.getSession();
             if (session && !error) { setupUser(session.user); showScreen('fleet'); }
@@ -205,12 +211,29 @@
 
         async function handleAuth() {
             const btn = document.getElementById('loginBtn');
-            btn.innerText = "AUTHENTICATING...";
-            const { data, error } = await sb.auth.signInWithPassword({
-                email: document.getElementById('email').value, password: document.getElementById('password').value
-            });
-            if (error) { alert("Access Denied"); btn.innerText = "Secure Login"; }
-            else { setupUser(data.user); showScreen('fleet'); }
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) return alert("Missing fields");
+            
+            btn.innerText = "PROCESSING...";
+            btn.disabled = true;
+
+            if (isRegistering) {
+                const { data, error } = await sb.auth.signUp({ email, password });
+                if (error) { alert("Registration Error: " + error.message); resetAuth(); }
+                else { alert("Registration successful!"); setupUser(data.user); showScreen('fleet'); }
+            } else {
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) { alert("Access Denied"); resetAuth(); }
+                else { setupUser(data.user); showScreen('fleet'); }
+            }
+        }
+
+        function resetAuth() {
+            const btn = document.getElementById('loginBtn');
+            btn.innerText = isRegistering ? "Create Account" : "Secure Login";
+            btn.disabled = false;
         }
 
         async function handleLogout() {
