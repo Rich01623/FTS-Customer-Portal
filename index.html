@@ -31,17 +31,18 @@
         .vehicle-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 2px solid transparent; background: white; position: relative; }
         .vehicle-card:hover { transform: translateY(-8px); border-color: var(--frost-red); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         
-        #map { width: 100%; height: 450px; border-radius: 4px; border: 1px solid #cbd5e1; }
+        #map { width: 100%; height: 350px; border-radius: 4px; border: 1px solid #cbd5e1; }
         .summary-sidebar { position: sticky; top: 20px; background: #0f172a; color: white; min-height: 580px; }
         .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; background: #0f172a; color: #64748b; font-size: 9px; display: flex; align-items: center; padding: 0 20px; font-weight: 800; text-transform: uppercase; z-index: 50; border-top: 1px solid #334155; }
-        
         .logo-large { filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.15)); }
     </style>
 </head>
 <body>
 
     <div style="display: none;">
+        <img src="logo.png" id="pdfLogoSource">
         <input type="hidden" id="custName"><input type="hidden" id="custEmail"><input type="hidden" id="userId">
+        <input type="hidden" id="custAddress"><input type="hidden" id="custPhone">
         <input type="hidden" id="activeRate"><input type="hidden" id="activeMPG"><input type="hidden" id="activeVehicleName">
     </div>
 
@@ -112,7 +113,11 @@
             <div class="col-span-12 lg:col-span-9 space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <section class="frost-card p-6 border-t-8 border-slate-800">
-                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">01. Routing</h3>
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">01. Routing & Reference</h3>
+                        <div class="mb-4">
+                            <span class="label-text">Customer Job Ref / PO Number</span>
+                            <input type="text" id="jobRef" class="frost-input font-bold uppercase" placeholder="E.G. PO-12345">
+                        </div>
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div><span class="label-text">Collection</span><input type="date" id="colDate" class="frost-input font-bold" onchange="validateDates(); update();"></div>
                             <div><span class="label-text">Delivery</span><input type="date" id="delDate" class="frost-input font-bold" onchange="update()"></div>
@@ -132,16 +137,22 @@
                         </div>
                     </section>
                     <section class="frost-card p-6 border-t-8 border-slate-800">
-                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">02. Requirements</h3>
-                        <div class="grid grid-cols-2 gap-4 mb-6">
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">02. Requirements & Notes</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
                             <div><span class="label-text">Load time (Hrs)</span><input type="number" id="loadHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                             <div><span class="label-text">Tip time (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                         </div>
-                        <div class="space-y-3 mb-4">
-                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Tail Lift (+£50)</label>
-                            <label class="flex items-center p-3 border rounded-lg cursor-pointer bg-white text-[11px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600 w-4 h-4">Pre-10am (+£25)</label>
+                        <div class="space-y-2 mb-4">
+                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600">Tail Lift (+£50)</label>
+                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600">Pre-10am (+£25)</label>
+                            <div id="overnightIndicator" class="p-2 border rounded bg-slate-50 text-[10px] font-black uppercase text-slate-400 flex items-center">
+                                <i class="fa-solid fa-moon mr-3"></i> Overnight Stay Surcharge: <span id="overnightStatus" class="ml-auto">NOT APPLICABLE</span>
+                            </div>
                         </div>
-                        <textarea id="additionalNotes" class="frost-input h-20 uppercase text-[10px] pt-2" placeholder="NOTES..."></textarea>
+                        <div>
+                            <span class="label-text">Delivery Notes / Goods Description</span>
+                            <textarea id="jobNotes" class="frost-input h-24 pt-2 text-xs uppercase" placeholder="Enter specific instructions or load details..."></textarea>
+                        </div>
                     </section>
                 </div>
                 <div id="map" class="shadow-xl"></div>
@@ -152,7 +163,10 @@
                     <div>
                         <div class="text-center mb-8"><span class="label-text text-slate-500 text-xs">Total Estimate (Ex. VAT)</span><div id="totalDisp" class="text-6xl font-black italic tracking-tighter text-white mt-2">£0.00</div></div>
                         <button id="submitBtn" onclick="saveJob()" class="w-full btn-primary py-5 rounded-lg font-black text-lg mb-3 shadow-lg">Submit Enquiry</button>
-                        <button onclick="downloadQuote()" class="w-full bg-slate-800 py-4 rounded-lg font-black text-xs flex items-center justify-center gap-2 text-white hover:bg-slate-700 transition-all"><i class="fa-solid fa-file-pdf"></i> Download PDF</button>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button onclick="downloadQuote()" class="bg-slate-800 py-3 rounded-lg font-black text-[10px] flex items-center justify-center gap-2 text-white hover:bg-slate-700 transition-all"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+                            <button onclick="clearForm()" class="bg-slate-700 py-3 rounded-lg font-black text-[10px] flex items-center justify-center gap-2 text-white hover:bg-red-600 transition-all uppercase">Reset</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -177,7 +191,7 @@
     </div>
 
     <footer class="status-bar">
-        <div>CORE ENGINE: <span class="text-white">FROST-V10.9</span></div>
+        <div>CORE ENGINE: <span class="text-white">FROST-V11.4</span></div>
         <div class="ml-auto" id="statusVehicle">AWAITING ASSET SELECTION</div>
     </footer>
 
@@ -185,15 +199,6 @@
         const _URL = "https://tdrzytgiqvdulityqttr.supabase.co";
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
-        let isRegistering = false;
-
-        function toggleAuthMode() {
-            isRegistering = !isRegistering;
-            document.getElementById('authTitle').innerText = isRegistering ? "Registration Request" : "Enterprise Login";
-            document.getElementById('loginBtn').innerText = isRegistering ? "Create Account" : "Secure Login";
-            document.getElementById('toggleBtn').innerText = isRegistering ? "Back to Login" : "Register New Account";
-            document.getElementById('regFields').style.display = isRegistering ? 'block' : 'none';
-        }
 
         window.onload = async () => {
             const { data: { session }, error } = await sb.auth.getSession();
@@ -206,27 +211,12 @@
             const password = document.getElementById('password').value;
             if (!email || !password) return alert("Email/Password required");
             btn.innerText = "PROCESSING..."; btn.disabled = true;
-
-            if (isRegistering) {
-                const { data, error } = await sb.auth.signUp({
-                    email, password,
-                    options: { data: {
-                        full_name: document.getElementById('regFullName').value,
-                        company_address: document.getElementById('regAddress').value,
-                        company_phone: document.getElementById('regCompPhone').value,
-                        mobile_number: document.getElementById('regMobile').value
-                    }}
-                });
-                if (error) { alert(error.message); resetAuth(); }
-                else { alert("Success!"); setupUser(data.user); showScreen('fleet'); }
-            } else {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) { alert("Access Denied"); resetAuth(); }
-                else { setupUser(data.user); showScreen('fleet'); }
-            }
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) { alert("Access Denied"); resetAuth(); }
+            else { setupUser(data.user); showScreen('fleet'); }
         }
 
-        function resetAuth() { const b = document.getElementById('loginBtn'); b.innerText = isRegistering ? "Create" : "Login"; b.disabled = false; }
+        function resetAuth() { const b = document.getElementById('loginBtn'); b.innerText = "Secure Login"; b.disabled = false; }
 
         function setupUser(user) {
             const meta = user.user_metadata;
@@ -235,8 +225,8 @@
             document.getElementById('custName').value = displayName;
             document.getElementById('custEmail').value = user.email;
             document.getElementById('userId').value = user.id;
-            
-            // Fill Profile fields
+            document.getElementById('custAddress').value = meta?.company_address || 'Not Provided';
+            document.getElementById('custPhone').value = meta?.company_phone || meta?.mobile_number || 'Not Provided';
             document.getElementById('profFullName').value = meta?.full_name || '';
             document.getElementById('profEmail').value = user.email;
             document.getElementById('profAddress').value = meta?.company_address || '';
@@ -311,16 +301,132 @@
             const mpg = parseFloat(document.getElementById('activeMPG').value) || 1;
             const miles = parseFloat(document.getElementById('mileInput').value) || 0;
             const hours = (parseFloat(document.getElementById('timeInput').value) || 0) + (parseFloat(document.getElementById('loadHrs').value) || 0) + (parseFloat(document.getElementById('tipHrs').value) || 0);
+            
             const fuel = (miles / mpg) * 4.546 * 1.25;
             const labor = hours * rate;
             let sub = (fuel + labor) * 1.25;
+            
             let extra = 0;
             if(document.getElementById('multiDropCheck').checked) extra += (document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).length * 50);
             if(document.getElementById('checkTailLift').checked) extra += 50;
             if(document.getElementById('checkPre10').checked) extra += 25;
+            
+            // AUTO OVERNIGHT LOGIC
+            const col = document.getElementById('colDate').value;
+            const del = document.getElementById('delDate').value;
+            let overnightApplied = false;
+            if(col && del && col !== del) {
+                extra += 50;
+                overnightApplied = true;
+                document.getElementById('overnightIndicator').className = "p-2 border rounded bg-red-50 text-[10px] font-black uppercase text-red-600 flex items-center";
+                document.getElementById('overnightStatus').innerText = "+£50.00 APPLIED";
+            } else {
+                document.getElementById('overnightIndicator').className = "p-2 border rounded bg-slate-50 text-[10px] font-black uppercase text-slate-400 flex items-center";
+                document.getElementById('overnightStatus').innerText = "NOT APPLICABLE";
+            }
+            
             const total = Math.ceil(((sub + extra) - 0.01) / 10) * 10;
             document.getElementById('totalDisp').innerText = '£' + (total || 0).toFixed(2);
-            document.getElementById('breakdown').innerHTML = `<div class='flex justify-between'><span>Operations</span><span>£${sub.toFixed(2)}</span></div>${extra > 0 ? `<div class='flex justify-between text-red-400'><span>Surcharges</span><span>£${extra.toFixed(2)}</span></div>` : ''}`;
+            document.getElementById('breakdown').innerHTML = `
+                <div class='flex justify-between'><span>Operations</span><span>£${sub.toFixed(2)}</span></div>
+                ${extra > 0 ? `<div class='flex justify-between text-red-400'><span>Surcharges</span><span>£${extra.toFixed(2)}</span></div>` : ''}
+                ${overnightApplied ? `<div class='flex justify-between text-[10px] text-slate-400 italic'><span>(Includes Overnight Secure)</span></div>` : ''}
+            `;
+        }
+
+        function clearForm() {
+            if(!confirm("Clear all entry data?")) return;
+            document.getElementById('pickup').value = "";
+            document.getElementById('delivery').value = "";
+            document.getElementById('jobRef').value = "";
+            document.getElementById('jobNotes').value = "";
+            document.getElementById('colDate').value = "";
+            document.getElementById('delDate').value = "";
+            document.getElementById('mileInput').value = 0;
+            document.getElementById('timeInput').value = 0;
+            document.getElementById('checkTailLift').checked = false;
+            document.getElementById('checkPre10').checked = false;
+            document.getElementById('multiDropCheck').checked = false;
+            document.getElementById('waypoints').value = "";
+            toggleMultiDrop();
+            if(directionsRenderer) directionsRenderer.setDirections({routes: []});
+            update();
+        }
+
+        function downloadQuote() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const accent = [195, 32, 38]; 
+            const dark = [15, 23, 42];   
+
+            doc.setFillColor(...dark);
+            doc.rect(0, 0, 210, 50, 'F');
+            try { doc.addImage(document.getElementById('pdfLogoSource'), 'PNG', 20, 10, 30, 30); } catch(e) {}
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.text("FROST TRANSPORT", 60, 25);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            doc.text("EXPRESS LOGISTICS & FREIGHT SOLUTIONS", 60, 32);
+
+            doc.setFontSize(9);
+            doc.text("QUOTATION NO:", 140, 20);
+            doc.text("DATE:", 140, 26);
+            doc.text("JOB REF:", 140, 32);
+            doc.setFont("helvetica", "bold");
+            doc.text("FTS-" + Math.floor(1000 + Math.random() * 9000), 175, 20);
+            doc.text(new Date().toLocaleDateString('en-GB'), 175, 26);
+            doc.text(document.getElementById('jobRef').value || "N/A", 175, 32);
+
+            doc.setTextColor(40); doc.setFontSize(10);
+            doc.text("PREPARED FOR:", 20, 65);
+            doc.text("PROVIDER DETAILS:", 120, 65);
+            doc.setFont("helvetica", "bold");
+            doc.text(document.getElementById('custName').value.toUpperCase(), 20, 71);
+            doc.setFont("helvetica", "normal");
+            const addr = document.getElementById('custAddress').value;
+            const splitAddr = doc.splitTextToSize(addr, 70);
+            doc.text(splitAddr, 20, 77);
+            doc.text(document.getElementById('custEmail').value, 20, 77 + (splitAddr.length * 5));
+
+            doc.setFont("helvetica", "bold");
+            doc.text("FROST TRANSPORT SOLUTIONS", 120, 71);
+            doc.setFont("helvetica", "normal");
+            doc.text(["Fosse Way, Car Colston", "Nottinghamshire", "NG13 8JA", "Tel: 01949 480 130"], 120, 77);
+
+            doc.autoTable({
+                startY: 110,
+                theme: 'grid',
+                head: [['SERVICE DESCRIPTION', 'ASSET TYPE', 'DISTANCE', 'TOTAL (EX. VAT)']],
+                body: [[
+                    `Express Transport: ${document.getElementById('pickup').value} to ${document.getElementById('delivery').value}`,
+                    document.getElementById('activeVehicleName').value,
+                    document.getElementById('mileInput').value + " Miles",
+                    document.getElementById('totalDisp').innerText
+                ]],
+                headStyles: { fillColor: dark, textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 9, cellPadding: 6 },
+                columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } }
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 15;
+            doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+            doc.text("ADDITIONAL INSTRUCTIONS / NOTES:", 20, finalY);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+            const notes = document.getElementById('jobNotes').value || "No specific instructions provided.";
+            doc.text(doc.splitTextToSize(notes, 170), 20, finalY + 7);
+
+            doc.setFillColor(245, 245, 245);
+            doc.rect(120, finalY + 30, 70, 25, 'F');
+            doc.setTextColor(accent[0], accent[1], accent[2]);
+            doc.setFontSize(14); doc.text("QUOTE TOTAL", 125, finalY + 40);
+            doc.setFontSize(18); doc.text(document.getElementById('totalDisp').innerText, 125, finalY + 50);
+
+            doc.setFontSize(8); doc.setTextColor(120);
+            doc.text("Terms & Conditions: Prices are valid for 7 days. Includes overnight secure parking if applicable.", 20, 280);
+            doc.text("Frost Transport Solutions is a trading name of Frost Logistics Ltd.", 20, 285);
+
+            doc.save(`Frost_Quotation_${document.getElementById('jobRef').value || 'New'}.pdf`);
         }
 
         async function saveJob() {
@@ -332,17 +438,12 @@
                 user_id: document.getElementById('userId').value,
                 total_price: parseFloat(document.getElementById('totalDisp').innerText.replace('£','')),
                 vehicle_type: document.getElementById('activeVehicleName').value,
+                reference: document.getElementById('jobRef').value,
+                notes: document.getElementById('jobNotes').value,
                 status: 'pending'
             }]);
             if (error) { alert("Submission Error"); btn.innerText = "Submit Enquiry"; btn.disabled = false; }
             else { alert("QUOTATION SAVED TO OPERATIONS"); location.reload(); }
-        }
-
-        function downloadQuote() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.setFont("helvetica", "bold"); doc.text("FROST TRANSPORT SOLUTIONS", 20, 25);
-            doc.autoTable({ startY: 40, body: [['Vehicle', document.getElementById('activeVehicleName').value], ['Route', `${document.getElementById('pickup').value} to ${document.getElementById('delivery').value}`], ['Total', document.getElementById('totalDisp').innerText]] });
-            doc.save(`Frost_Quote.pdf`);
         }
 
         function toggleMultiDrop() { document.getElementById('waypointContainer').style.display = document.getElementById('multiDropCheck').checked ? 'block' : 'none'; calculate(); }
