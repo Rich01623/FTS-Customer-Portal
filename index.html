@@ -42,15 +42,14 @@
     <div style="display: none;">
         <img src="logo.png" id="pdfLogoSource">
         <input type="hidden" id="custName"><input type="hidden" id="custEmail"><input type="hidden" id="userId">
-        <input type="hidden" id="custAddress"><input type="hidden" id="custPhone">
         <input type="hidden" id="activeRate"><input type="hidden" id="activeMPG"><input type="hidden" id="activeVehicleName">
     </div>
 
     <div id="screen-auth" class="app-screen active-screen">
         <div id="authOverlay">
             <div class="bg-white p-10 rounded-lg shadow-2xl w-[450px] border-b-8 border-red-600 flex flex-col items-center my-auto">
-                <img src="logo.png" alt="Frost" class="h-24 mb-6 logo-large">
-                <h2 id="authTitle" class="text-xl font-black italic mb-2 text-slate-800 uppercase tracking-tight text-center">Enterprise Login</h2>
+                <img src="logo.png" alt="Frost" class="h-32 mb-6 logo-large">
+                <h2 id="authTitle" class="text-xl font-black italic mb-2 text-slate-800 uppercase tracking-tight text-center">User Login</h2>
                 <div class="space-y-3 w-full text-left">
                     <div id="regFields" style="display: none;" class="space-y-3 pt-2 border-t border-slate-100 mt-2">
                         <div><span class="label-text">Full Name</span><input type="text" id="regFullName" class="frost-input"></div>
@@ -73,8 +72,12 @@
 
     <div id="screen-fleet" class="app-screen max-w-[1200px] mx-auto py-16 px-6">
         <div class="text-center mb-14">
-            <img src="logo.png" alt="Frost" class="h-24 mx-auto mb-6 logo-large">
-            <h1 class="text-4xl font-black italic uppercase text-slate-800 tracking-tighter">Select Transport Asset</h1>
+            <img src="logo.png" alt="Frost" class="h-32 mx-auto mb-6 logo-large">
+            <h2 class="text-xl font-bold text-slate-500 uppercase tracking-widest mb-1">
+                Welcome back, <span id="fleetUserName" class="text-red-600">User</span>
+            </h2>
+            <div id="fleetDateTime" class="text-sm font-black text-slate-400 mb-8 font-mono"></div>
+            <h1 class="text-4xl font-black italic uppercase text-slate-800 tracking-tighter">Select Vehicle</h1>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="vehicle-card p-10 rounded-lg shadow-lg text-center" onclick="selectVehicle('44T Articulated', 65.85, 8)">
@@ -99,7 +102,7 @@
     <div id="screen-calculator" class="app-screen max-w-[1600px] mx-auto pt-4 px-6">
         <header class="flex justify-between items-center mb-8 p-6">
             <div class="flex items-center gap-10">
-                <img src="logo.png" alt="Frost" class="h-24 logo-large">
+                <img src="logo.png" alt="Frost" class="h-32 logo-large">
                 <button onclick="showScreen('fleet')" class="text-[10px] font-black text-slate-800 uppercase border-2 border-slate-800/20 bg-white/60 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition-all">
                     <i class="fa-solid fa-rotate mr-2"></i> Asset: <span id="displayVehicleName" class="text-red-600"></span>
                 </button>
@@ -113,17 +116,31 @@
             <div class="col-span-12 lg:col-span-9 space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <section class="frost-card p-6 border-t-8 border-slate-800">
-                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">01. Routing & Reference</h3>
-                        <div class="mb-4">
-                            <span class="label-text">Customer Job Ref / PO Number</span>
-                            <input type="text" id="jobRef" class="frost-input font-bold uppercase" placeholder="E.G. PO-12345">
-                        </div>
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">01. Routing</h3>
                         <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div><span class="label-text">Collection</span><input type="date" id="colDate" class="frost-input font-bold" onchange="validateDates(); update();"></div>
-                            <div><span class="label-text">Delivery</span><input type="date" id="delDate" class="frost-input font-bold" onchange="update()"></div>
+                            <div><span class="label-text">Collection Date</span><input type="date" id="colDate" class="frost-input font-bold" onchange="validateDates(); update();"></div>
+                            <div><span class="label-text">Delivery Date</span><input type="date" id="delDate" class="frost-input font-bold" onchange="update()"></div>
                         </div>
                         <input type="text" id="pickup" class="frost-input uppercase font-bold mb-4" placeholder="COLLECTION ADDRESS">
                         <input type="text" id="delivery" class="frost-input uppercase font-bold mb-4" placeholder="DELIVERY ADDRESS">
+                        
+                        <div class="grid grid-cols-12 gap-4 mb-4 items-end">
+                            <div class="col-span-4">
+                                <span class="label-text">Collection Time</span>
+                                <input type="time" id="colTime" class="frost-input font-bold">
+                            </div>
+                            <div class="col-span-4 flex items-center h-[42px]">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="checkTimed" onchange="toggleTimedBooking(); update();" class="accent-red-600 w-4 h-4">
+                                    <span class="label-text" style="margin:0">Timed Booking</span>
+                                </label>
+                            </div>
+                            <div class="col-span-4" id="timedDeliveryRow" style="display:none;">
+                                <span class="label-text">Delivery Time</span>
+                                <input type="time" id="delTime" class="frost-input font-bold">
+                            </div>
+                        </div>
+
                         <div class="flex gap-4 mb-4 items-center">
                             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="multiDropCheck" onchange="toggleMultiDrop()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Multi-Drop</span></label>
                             <label class="flex items-center gap-2 cursor-pointer ml-4"><input type="checkbox" id="manualMode" onchange="toggleManual()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Manual Override</span></label>
@@ -143,11 +160,15 @@
                             <div><span class="label-text">Tip time (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                         </div>
                         <div class="space-y-2 mb-4">
-                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600">Tail Lift (+£50)</label>
-                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600">Pre-10am (+£25)</label>
+                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600">Tail Lift (+£50 Flat)</label>
+                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600">Pre-10am (+£25 Flat)</label>
                             <div id="overnightIndicator" class="p-2 border rounded bg-slate-50 text-[10px] font-black uppercase text-slate-400 flex items-center">
                                 <i class="fa-solid fa-moon mr-3"></i> Overnight Stay Surcharge: <span id="overnightStatus" class="ml-auto">NOT APPLICABLE</span>
                             </div>
+                        </div>
+                        <div class="mb-4">
+                            <span class="label-text">Customer Job Ref / PO Number</span>
+                            <input type="text" id="jobRef" class="frost-input font-bold uppercase" placeholder="E.G. PO-12345">
                         </div>
                         <div>
                             <span class="label-text">Delivery Notes / Goods Description</span>
@@ -191,7 +212,7 @@
     </div>
 
     <footer class="status-bar">
-        <div>CORE ENGINE: <span class="text-white">FROST-V11.4</span></div>
+        <div>CORE ENGINE: <span class="text-white">FROST-V11.8</span></div>
         <div class="ml-auto" id="statusVehicle">AWAITING ASSET SELECTION</div>
     </footer>
 
@@ -201,9 +222,24 @@
         const sb = supabase.createClient(_URL, _KEY);
 
         window.onload = async () => {
+            startClock();
             const { data: { session }, error } = await sb.auth.getSession();
             if (session && !error) { setupUser(session.user); showScreen('fleet'); }
         };
+
+        function startClock() {
+            const updateTime = () => {
+                const now = new Date();
+                const options = { 
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+                };
+                const el = document.getElementById('fleetDateTime');
+                if(el) el.innerText = now.toLocaleString('en-GB', options).toUpperCase();
+            };
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
 
         async function handleAuth() {
             const btn = document.getElementById('loginBtn');
@@ -211,9 +247,24 @@
             const password = document.getElementById('password').value;
             if (!email || !password) return alert("Email/Password required");
             btn.innerText = "PROCESSING..."; btn.disabled = true;
-            const { data, error } = await sb.auth.signInWithPassword({ email, password });
-            if (error) { alert("Access Denied"); resetAuth(); }
-            else { setupUser(data.user); showScreen('fleet'); }
+            
+            if(btn.innerText === "REGISTER ACCOUNT") {
+                const { data, error } = await sb.auth.signUp({
+                    email, password,
+                    options: { data: {
+                        full_name: document.getElementById('regFullName').value,
+                        company_address: document.getElementById('regAddress').value,
+                        company_phone: document.getElementById('regCompPhone').value,
+                        mobile_number: document.getElementById('regMobile').value
+                    }}
+                });
+                if(error) { alert(error.message); resetAuth(); }
+                else { alert("Verification email sent!"); resetAuth(); }
+            } else {
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) { alert("Access Denied"); resetAuth(); }
+                else { setupUser(data.user); showScreen('fleet'); }
+            }
         }
 
         function resetAuth() { const b = document.getElementById('loginBtn'); b.innerText = "Secure Login"; b.disabled = false; }
@@ -222,16 +273,17 @@
             const meta = user.user_metadata;
             const displayName = meta?.full_name || user.email.split('@')[0];
             document.getElementById('userBadge').innerText = displayName.toUpperCase();
-            document.getElementById('custName').value = displayName;
-            document.getElementById('custEmail').value = user.email;
-            document.getElementById('userId').value = user.id;
-            document.getElementById('custAddress').value = meta?.company_address || 'Not Provided';
-            document.getElementById('custPhone').value = meta?.company_phone || meta?.mobile_number || 'Not Provided';
+            document.getElementById('fleetUserName').innerText = displayName;
+            
             document.getElementById('profFullName').value = meta?.full_name || '';
             document.getElementById('profEmail').value = user.email;
             document.getElementById('profAddress').value = meta?.company_address || '';
             document.getElementById('profCompPhone').value = meta?.company_phone || '';
             document.getElementById('profMobile').value = meta?.mobile_number || '';
+            
+            document.getElementById('custName').value = displayName;
+            document.getElementById('custEmail').value = user.email;
+            document.getElementById('userId').value = user.id;
         }
 
         async function updateProfile() {
@@ -296,6 +348,11 @@
             });
         }
 
+        function toggleTimedBooking() {
+            const isChecked = document.getElementById('checkTimed').checked;
+            document.getElementById('timedDeliveryRow').style.display = isChecked ? 'block' : 'none';
+        }
+
         function update() {
             const rate = parseFloat(document.getElementById('activeRate').value) || 0;
             const mpg = parseFloat(document.getElementById('activeMPG').value) || 1;
@@ -304,19 +361,15 @@
             
             const fuel = (miles / mpg) * 4.546 * 1.25;
             const labor = hours * rate;
-            let sub = (fuel + labor) * 1.25;
             
-            let extra = 0;
-            if(document.getElementById('multiDropCheck').checked) extra += (document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).length * 50);
-            if(document.getElementById('checkTailLift').checked) extra += 50;
-            if(document.getElementById('checkPre10').checked) extra += 25;
+            let markupSurcharge = 0;
+            if(document.getElementById('multiDropCheck').checked) markupSurcharge += (document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).length * 50);
             
-            // AUTO OVERNIGHT LOGIC
             const col = document.getElementById('colDate').value;
             const del = document.getElementById('delDate').value;
             let overnightApplied = false;
             if(col && del && col !== del) {
-                extra += 50;
+                markupSurcharge += 50;
                 overnightApplied = true;
                 document.getElementById('overnightIndicator').className = "p-2 border rounded bg-red-50 text-[10px] font-black uppercase text-red-600 flex items-center";
                 document.getElementById('overnightStatus').innerText = "+£50.00 APPLIED";
@@ -324,12 +377,23 @@
                 document.getElementById('overnightIndicator').className = "p-2 border rounded bg-slate-50 text-[10px] font-black uppercase text-slate-400 flex items-center";
                 document.getElementById('overnightStatus').innerText = "NOT APPLICABLE";
             }
+
+            let baseWithMarkup = (fuel + labor + markupSurcharge) * 1.25;
+            let roundedBase = Math.ceil(((baseWithMarkup) - 0.01) / 10) * 10;
             
-            const total = Math.ceil(((sub + extra) - 0.01) / 10) * 10;
+            let flatFees = 0;
+            if(document.getElementById('checkTailLift').checked) flatFees += 50;
+            if(document.getElementById('checkPre10').checked) flatFees += 25; 
+            if(document.getElementById('checkTimed').checked) flatFees += 50;
+            
+            const total = roundedBase + flatFees;
+            
             document.getElementById('totalDisp').innerText = '£' + (total || 0).toFixed(2);
             document.getElementById('breakdown').innerHTML = `
-                <div class='flex justify-between'><span>Operations</span><span>£${sub.toFixed(2)}</span></div>
-                ${extra > 0 ? `<div class='flex justify-between text-red-400'><span>Surcharges</span><span>£${extra.toFixed(2)}</span></div>` : ''}
+                <div class='flex justify-between'><span>Operations (Inc. Markup)</span><span>£${roundedBase.toFixed(2)}</span></div>
+                ${document.getElementById('checkTailLift').checked ? `<div class='flex justify-between text-yellow-400 font-bold'><span>Tail Lift Flat Fee</span><span>£50.00</span></div>` : ''}
+                ${document.getElementById('checkPre10').checked ? `<div class='flex justify-between text-yellow-400 font-bold'><span>Pre-10AM Flat Fee</span><span>£25.00</span></div>` : ''}
+                ${document.getElementById('checkTimed').checked ? `<div class='flex justify-between text-yellow-400 font-bold'><span>Timed Booking Flat Fee</span><span>£50.00</span></div>` : ''}
                 ${overnightApplied ? `<div class='flex justify-between text-[10px] text-slate-400 italic'><span>(Includes Overnight Secure)</span></div>` : ''}
             `;
         }
@@ -342,6 +406,9 @@
             document.getElementById('jobNotes').value = "";
             document.getElementById('colDate').value = "";
             document.getElementById('delDate').value = "";
+            document.getElementById('colTime').value = "";
+            document.getElementById('delTime').value = "";
+            document.getElementById('checkTimed').checked = false;
             document.getElementById('mileInput').value = 0;
             document.getElementById('timeInput').value = 0;
             document.getElementById('checkTailLift').checked = false;
@@ -349,6 +416,7 @@
             document.getElementById('multiDropCheck').checked = false;
             document.getElementById('waypoints').value = "";
             toggleMultiDrop();
+            toggleTimedBooking();
             if(directionsRenderer) directionsRenderer.setDirections({routes: []});
             update();
         }
@@ -356,7 +424,6 @@
         function downloadQuote() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const accent = [195, 32, 38]; 
             const dark = [15, 23, 42];   
 
             doc.setFillColor(...dark);
@@ -381,25 +448,35 @@
             doc.setTextColor(40); doc.setFontSize(10);
             doc.text("PREPARED FOR:", 20, 65);
             doc.text("PROVIDER DETAILS:", 120, 65);
+            
             doc.setFont("helvetica", "bold");
-            doc.text(document.getElementById('custName').value.toUpperCase(), 20, 71);
-            doc.setFont("helvetica", "normal");
-            const addr = document.getElementById('custAddress').value;
+            doc.text(document.getElementById('profFullName').value.toUpperCase() || "VALUED CUSTOMER", 20, 71);
+            
+            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+            const addr = document.getElementById('profAddress').value || "Address Not Provided";
             const splitAddr = doc.splitTextToSize(addr, 70);
             doc.text(splitAddr, 20, 77);
-            doc.text(document.getElementById('custEmail').value, 20, 77 + (splitAddr.length * 5));
+            
+            let nextY = 77 + (splitAddr.length * 5);
+            doc.text(document.getElementById('profEmail').value || "Email Not Provided", 20, nextY);
+            doc.text("Tel: " + (document.getElementById('profMobile').value || document.getElementById('profCompPhone').value || "N/A"), 20, nextY + 5);
 
             doc.setFont("helvetica", "bold");
             doc.text("FROST TRANSPORT SOLUTIONS", 120, 71);
             doc.setFont("helvetica", "normal");
             doc.text(["Fosse Way, Car Colston", "Nottinghamshire", "NG13 8JA", "Tel: 01949 480 130"], 120, 77);
 
+            const colD = document.getElementById('colDate').value || "TBA";
+            const colT = document.getElementById('colTime').value || "TBA";
+            const delD = document.getElementById('delDate').value || "TBA";
+            const delT = document.getElementById('checkTimed').checked ? document.getElementById('delTime').value || "TBA" : "Standard";
+
             doc.autoTable({
                 startY: 110,
                 theme: 'grid',
                 head: [['SERVICE DESCRIPTION', 'ASSET TYPE', 'DISTANCE', 'TOTAL (EX. VAT)']],
                 body: [[
-                    `Express Transport: ${document.getElementById('pickup').value} to ${document.getElementById('delivery').value}`,
+                    `Express Transport: ${document.getElementById('pickup').value} to ${document.getElementById('delivery').value}\n\nCOLLECTION: ${colD} @ ${colT}\nDELIVERY: ${delD} @ ${delT}`,
                     document.getElementById('activeVehicleName').value,
                     document.getElementById('mileInput').value + " Miles",
                     document.getElementById('totalDisp').innerText
@@ -418,13 +495,12 @@
 
             doc.setFillColor(245, 245, 245);
             doc.rect(120, finalY + 30, 70, 25, 'F');
-            doc.setTextColor(accent[0], accent[1], accent[2]);
+            doc.setTextColor(195, 32, 38);
             doc.setFontSize(14); doc.text("QUOTE TOTAL", 125, finalY + 40);
             doc.setFontSize(18); doc.text(document.getElementById('totalDisp').innerText, 125, finalY + 50);
 
             doc.setFontSize(8); doc.setTextColor(120);
             doc.text("Terms & Conditions: Prices are valid for 7 days. Includes overnight secure parking if applicable.", 20, 280);
-            doc.text("Frost Transport Solutions is a trading name of Frost Logistics Ltd.", 20, 285);
 
             doc.save(`Frost_Quotation_${document.getElementById('jobRef').value || 'New'}.pdf`);
         }
@@ -434,7 +510,7 @@
             const { error } = await sb.from('quotes').insert([{
                 pickup: document.getElementById('pickup').value,
                 delivery: document.getElementById('delivery').value,
-                customer_name: document.getElementById('custName').value,
+                customer_name: document.getElementById('profFullName').value,
                 user_id: document.getElementById('userId').value,
                 total_price: parseFloat(document.getElementById('totalDisp').innerText.replace('£','')),
                 vehicle_type: document.getElementById('activeVehicleName').value,
@@ -449,6 +525,24 @@
         function toggleMultiDrop() { document.getElementById('waypointContainer').style.display = document.getElementById('multiDropCheck').checked ? 'block' : 'none'; calculate(); }
         function toggleManual() { const m = document.getElementById('manualMode').checked; document.getElementById('mileInput').disabled = !m; document.getElementById('timeInput').disabled = !m; }
         function validateDates() { const col = document.getElementById('colDate'); const del = document.getElementById('delDate'); if(col.value) del.min = col.value; }
+
+        function toggleAuthMode() {
+            const reg = document.getElementById('regFields');
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('loginBtn');
+            const toggle = document.getElementById('toggleBtn');
+            if (reg.style.display === 'none') {
+                reg.style.display = 'block';
+                title.innerText = "Create Account";
+                btn.innerText = "Register Account";
+                toggle.innerText = "Already have an account? Login";
+            } else {
+                reg.style.display = 'none';
+                title.innerText = "User Login";
+                btn.innerText = "Secure Login";
+                toggle.innerText = "Register New Account";
+            }
+        }
     </script>
 </body>
 </html>
