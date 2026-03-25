@@ -252,9 +252,11 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             if (!email || !password) return alert("Email/Password required");
+            
+            const isRegMode = (btn.innerText === "REGISTER ACCOUNT");
             btn.innerText = "PROCESSING..."; btn.disabled = true;
             
-            if(btn.innerText === "REGISTER ACCOUNT") {
+            if(isRegMode) {
                 const { data, error } = await sb.auth.signUp({
                     email, password,
                     options: { data: {
