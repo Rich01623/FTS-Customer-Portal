@@ -36,6 +36,10 @@
         .summary-sidebar { position: sticky; top: 20px; background: #0f172a; color: white; min-height: 580px; }
         .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; background: #0f172a; color: #64748b; font-size: 9px; display: flex; align-items: center; padding: 0 20px; font-weight: 800; text-transform: uppercase; z-index: 50; border-top: 1px solid #334155; }
         .logo-large { filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.15)); }
+
+        /* New Status Badge Styles */
+        #status-badge { background: #334155; padding: 4px 10px; border-radius: 4px; font-size: 10px; color: white; font-weight: 900; display: inline-block; }
+        .status-assigned { background: #10b981 !important; }
     </style>
 </head>
 <body>
@@ -49,7 +53,7 @@
     <div id="screen-auth" class="app-screen active-screen">
         <div id="authOverlay">
             <div class="bg-white p-10 rounded-lg shadow-2xl w-[450px] border-b-8 border-red-600 flex flex-col items-center my-auto">
-                <img src="logo.png" id="authLogo" class="h-32 mb-6 logo-large">
+                <img src="logo.png" class="h-32 mb-6 logo-large">
                 <h2 id="authTitle" class="text-xl font-black italic mb-2 text-slate-800 uppercase tracking-tight text-center">User Login</h2>
                 <div class="space-y-3 w-full text-left">
                     <div id="regFields" style="display: none;" class="space-y-3 pt-2 border-t border-slate-100 mt-2">
@@ -181,7 +185,13 @@
             </div>
             <div class="col-span-12 lg:col-span-3">
                 <div class="summary-sidebar p-8 rounded-lg shadow-2xl flex flex-col justify-between border-b-8 border-red-600">
-                    <div><h2 class="text-red-500 font-black italic uppercase text-[12px] mb-8 border-b border-slate-700 pb-4">Live Quote</h2><div id="breakdown" class="space-y-4 text-[13px] font-mono text-slate-300"></div></div>
+                    <div>
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                            <h2 class="text-red-500 font-black italic uppercase text-[12px]">Live Quote</h2>
+                            <div id="status-badge">STANDBY</div>
+                        </div>
+                        <div id="breakdown" class="space-y-4 text-[13px] font-mono text-slate-300"></div>
+                    </div>
                     <div>
                         <div class="text-center mb-8"><span class="label-text text-slate-500 text-xs">Total Estimate (Ex. VAT)</span><div id="totalDisp" class="text-6xl font-black italic tracking-tighter text-white mt-2">£0.00</div></div>
                         
@@ -289,7 +299,6 @@
         async function updateProfile() {
             const { data: { session } } = await sb.auth.getSession();
             if (!session) { alert("Auth session missing! Please log in again."); showScreen('auth'); return; }
-            
             const btn = document.getElementById('profUpdateBtn'); btn.innerText = "UPDATING...";
             const { data, error } = await sb.auth.updateUser({
                 data: {
@@ -388,7 +397,8 @@
             const btnIcon = document.getElementById('submitIcon');
             btn.disabled = true; btnText.innerText = "Processing..."; btnIcon.className = "fa-solid fa-circle-notch fa-spin";
 
-            const { error } = await sb.from('quotes').insert([{
+            // We use .select() here to get the ID back after insertion
+            const { data, error } = await sb.from('quotes').insert([{
                 pickup: document.getElementById('pickup').value,
                 delivery: document.getElementById('delivery').value,
                 customer_name: document.getElementById('profFullName').value,
@@ -400,10 +410,46 @@
                 reference: document.getElementById('jobRef').value,
                 notes: document.getElementById('jobNotes').value,
                 status: 'pending'
-            }]);
+            }]).select();
 
-            if (error) { alert("Submission Error: " + error.message); btn.disabled = false; btnText.innerText = "Submit Enquiry"; btnIcon.className = "fa-solid fa-paper-plane"; }
-            else { btn.style.background = "#10b981"; btnText.innerText = "Enquiry Sent!"; btnIcon.className = "fa-solid fa-check"; setTimeout(() => { location.reload(); }, 1500); }
+            if (error) { 
+                alert("Submission Error: " + error.message); 
+                btn.disabled = false; btnText.innerText = "Submit Enquiry"; btnIcon.className = "fa-solid fa-paper-plane"; 
+            } else { 
+                btn.style.background = "#10b981"; 
+                btnText.innerText = "Enquiry Sent!"; 
+                btnIcon.className = "fa-solid fa-check"; 
+                
+                // Update UI Status
+                document.getElementById('status-badge').innerText = "PENDING";
+                
+                // Start listening for the planner's acceptance immediately
+                if(data && data[0]) startTracking(data[0].id);
+            }
+        }
+
+        function startTracking(quoteId) {
+            console.log("Listening for updates on quote:", quoteId);
+            
+            sb.channel('quote-updates')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'quotes',
+                    filter: `id=eq.${quoteId}` 
+                },
+                (payload) => {
+                    if (payload.new.status === 'assigned') {
+                        alert("Success! Your job has been accepted and assigned to a FROST driver.");
+                        const badge = document.getElementById('status-badge');
+                        badge.innerText = "ASSIGNED";
+                        badge.classList.add('status-assigned');
+                    }
+                }
+            )
+            .subscribe();
         }
 
         function downloadQuote() {
