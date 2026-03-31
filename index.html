@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=places&v=weekly&callback=initMap" async defer></script>
     
     <style>
         :root { --frost-red: #c32026; --frost-dark-navy: #0f172a; }
@@ -32,28 +31,24 @@
         .vehicle-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 2px solid transparent; background: white; position: relative; }
         .vehicle-card:hover { transform: translateY(-8px); border-color: var(--frost-red); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         
-        #map { width: 100%; height: 350px; border-radius: 4px; border: 1px solid #cbd5e1; }
+        #map { width: 100%; height: 350px; border-radius: 4px; border: 1px solid #cbd5e1; background: #eee; }
         .summary-sidebar { position: sticky; top: 20px; background: #0f172a; color: white; min-height: 580px; }
         .status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 30px; background: #0f172a; color: #64748b; font-size: 9px; display: flex; align-items: center; padding: 0 20px; font-weight: 800; text-transform: uppercase; z-index: 50; border-top: 1px solid #334155; }
-        .logo-large { filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.15)); }
-
-        /* New Status Badge Styles */
         #status-badge { background: #334155; padding: 4px 10px; border-radius: 4px; font-size: 10px; color: white; font-weight: 900; display: inline-block; }
-        .status-assigned { background: #10b981 !important; }
     </style>
 </head>
 <body>
 
     <div style="display: none;">
         <img src="logo.png" id="pdfLogoSource">
-        <input type="hidden" id="custName"><input type="hidden" id="custEmail"><input type="hidden" id="userId">
+        <input type="hidden" id="custEmail"><input type="hidden" id="userId">
         <input type="hidden" id="activeRate"><input type="hidden" id="activeMPG"><input type="hidden" id="activeVehicleName">
     </div>
 
     <div id="screen-auth" class="app-screen active-screen">
         <div id="authOverlay">
             <div class="bg-white p-10 rounded-lg shadow-2xl w-[450px] border-b-8 border-red-600 flex flex-col items-center my-auto">
-                <img src="logo.png" class="h-32 mb-6 logo-large">
+                <img src="logo.png" class="h-32 mb-6">
                 <h2 id="authTitle" class="text-xl font-black italic mb-2 text-slate-800 uppercase tracking-tight text-center">User Login</h2>
                 <div class="space-y-3 w-full text-left">
                     <div id="regFields" style="display: none;" class="space-y-3 pt-2 border-t border-slate-100 mt-2">
@@ -77,10 +72,8 @@
 
     <div id="screen-fleet" class="app-screen max-w-[1200px] mx-auto py-16 px-6">
         <div class="text-center mb-14">
-            <img src="logo.png" class="h-32 mx-auto mb-6 logo-large">
-            <h2 class="text-xl font-bold text-slate-500 uppercase tracking-widest mb-1">
-                Welcome back, <span id="fleetUserName" class="text-red-600">User</span>
-            </h2>
+            <img src="logo.png" class="h-32 mx-auto mb-6">
+            <h2 class="text-xl font-bold text-slate-500 uppercase tracking-widest mb-1">Welcome back, <span id="fleetUserName" class="text-red-600">User</span></h2>
             <div id="fleetDateTime" class="text-sm font-black text-slate-400 mb-8 font-mono"></div>
             <h1 class="text-4xl font-black italic uppercase text-slate-800 tracking-tighter">Select Vehicle</h1>
         </div>
@@ -107,7 +100,7 @@
     <div id="screen-calculator" class="app-screen max-w-[1600px] mx-auto pt-4 px-6">
         <header class="flex justify-between items-center mb-8 p-6">
             <div class="flex items-center gap-10">
-                <img src="logo.png" class="h-32 logo-large">
+                <img src="logo.png" class="h-32">
                 <button onclick="showScreen('fleet')" class="text-[10px] font-black text-slate-800 uppercase border-2 border-slate-800/20 bg-white/60 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition-all">
                     <i class="fa-solid fa-rotate mr-2"></i> Asset: <span id="displayVehicleName" class="text-red-600"></span>
                 </button>
@@ -117,6 +110,7 @@
                 <div class="mt-1"><button onclick="handleLogout()" class="text-[9px] font-bold text-red-600 uppercase tracking-widest hover:underline">Sign Out</button></div>
             </div>
         </header>
+
         <main class="grid grid-cols-12 gap-6">
             <div class="col-span-12 lg:col-span-9 space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -129,81 +123,34 @@
                         <input type="text" id="pickup" class="frost-input uppercase font-bold mb-4" placeholder="COLLECTION ADDRESS">
                         <input type="text" id="delivery" class="frost-input uppercase font-bold mb-4" placeholder="DELIVERY ADDRESS">
                         
-                        <div class="grid grid-cols-12 gap-4 mb-4 items-end">
-                            <div class="col-span-4">
-                                <span class="label-text">Collection Time</span>
-                                <input type="time" id="colTime" class="frost-input font-bold">
-                            </div>
-                            <div class="col-span-4 flex items-center h-[42px]">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="checkTimed" onchange="toggleTimedBooking(); update();" class="accent-red-600 w-4 h-4">
-                                    <span class="label-text" style="margin:0">Timed Booking</span>
-                                </label>
-                            </div>
-                            <div class="col-span-4" id="timedDeliveryRow" style="display:none;">
-                                <span class="label-text">Delivery Time</span>
-                                <input type="time" id="delTime" class="frost-input font-bold">
-                            </div>
-                        </div>
-
-                        <div class="flex gap-4 mb-4 items-center">
-                            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="multiDropCheck" onchange="toggleMultiDrop()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Multi-Drop</span></label>
-                            <label class="flex items-center gap-2 cursor-pointer ml-4"><input type="checkbox" id="manualMode" onchange="toggleManual()" class="accent-red-600 w-4 h-4"><span class="label-text" style="margin:0">Manual Override</span></label>
-                        </div>
-                        <div id="waypointContainer" style="display: none;" class="mb-4 bg-slate-50 p-4 rounded border">
-                            <textarea id="waypoints" class="frost-input h-20 uppercase text-xs pt-2" placeholder="Enter stops (one per line)" onchange="calculate()"></textarea>
-                        </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="p-3 bg-slate-50 border text-center rounded"><span class="label-text">Est. Miles</span><input type="number" id="mileInput" class="w-full text-center font-black text-xl bg-transparent" value="0" oninput="update()" disabled></div>
                             <div class="p-3 bg-slate-50 border text-center rounded"><span class="label-text">Transit Time</span><input type="number" id="timeInput" class="w-full text-center font-black text-xl bg-transparent" value="0.00" oninput="update()" disabled></div>
                         </div>
                     </section>
+
                     <section class="frost-card p-6 border-t-8 border-slate-800">
-                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">02. Requirements & Notes</h3>
+                        <h3 class="text-[14px] font-black text-red-600 uppercase mb-4 italic">02. Requirements</h3>
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div><span class="label-text">Load time (Hrs)</span><input type="number" id="loadHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                             <div><span class="label-text">Tip time (Hrs)</span><input type="number" id="tipHrs" value="1" step="0.5" class="frost-input text-center font-bold" oninput="update()"></div>
                         </div>
-                        <div class="space-y-2 mb-4">
-                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkTailLift" onchange="update()" class="mr-3 accent-red-600">Tail Lift (+£50 Flat)</label>
-                            <label class="flex items-center p-2 border rounded cursor-pointer bg-white text-[10px] font-bold uppercase"><input type="checkbox" id="checkPre10" onchange="update()" class="mr-3 accent-red-600">Pre-10am (+£25 Flat)</label>
-                            <div id="overnightIndicator" class="p-2 border rounded bg-slate-50 text-[10px] font-black uppercase text-slate-400 flex items-center">
-                                <i class="fa-solid fa-moon mr-3"></i> Overnight Stay Surcharge: <span id="overnightStatus" class="ml-auto">NOT APPLICABLE</span>
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <span class="label-text">Customer Job Ref / PO Number</span>
-                            <input type="text" id="jobRef" class="frost-input font-bold uppercase" placeholder="E.G. PO-12345">
-                        </div>
-                        <div>
-                            <span class="label-text">Delivery Notes / Goods Description</span>
-                            <textarea id="jobNotes" class="frost-input h-24 pt-2 text-xs uppercase" placeholder="Enter specific instructions or load details..."></textarea>
-                        </div>
+                        <div class="mb-4"><span class="label-text">Customer Job Ref / PO</span><input type="text" id="jobRef" class="frost-input font-bold uppercase"></div>
+                        <div><span class="label-text">Delivery Notes</span><textarea id="jobNotes" class="frost-input h-20 pt-2 text-xs uppercase" placeholder="Instructions..."></textarea></div>
                     </section>
                 </div>
                 <div id="map" class="shadow-xl"></div>
             </div>
+
             <div class="col-span-12 lg:col-span-3">
                 <div class="summary-sidebar p-8 rounded-lg shadow-2xl flex flex-col justify-between border-b-8 border-red-600">
                     <div>
-                        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                            <h2 class="text-red-500 font-black italic uppercase text-[12px]">Live Quote</h2>
-                            <div id="status-badge">STANDBY</div>
-                        </div>
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4"><h2 class="text-red-500 font-black italic uppercase text-[12px]">Live Quote</h2><div id="status-badge">STANDBY</div></div>
                         <div id="breakdown" class="space-y-4 text-[13px] font-mono text-slate-300"></div>
                     </div>
                     <div>
                         <div class="text-center mb-8"><span class="label-text text-slate-500 text-xs">Total Estimate (Ex. VAT)</span><div id="totalDisp" class="text-6xl font-black italic tracking-tighter text-white mt-2">£0.00</div></div>
-                        
-                        <button id="submitBtn" onclick="saveJob()" class="w-full btn-primary py-5 rounded-lg font-black text-lg mb-3 shadow-lg flex items-center justify-center gap-3">
-                            <span id="submitText">Submit Enquiry</span>
-                            <i id="submitIcon" class="fa-solid fa-paper-plane"></i>
-                        </button>
-
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <button onclick="downloadQuote()" class="bg-slate-800 py-3 rounded-lg font-black text-[10px] flex items-center justify-center gap-2 text-white hover:bg-slate-700 transition-all"><i class="fa-solid fa-file-pdf"></i> PDF</button>
-                            <button onclick="clearForm()" class="bg-slate-700 py-3 rounded-lg font-black text-[10px] flex items-center justify-center gap-2 text-white hover:bg-red-600 transition-all uppercase">Reset</button>
-                        </div>
+                        <button id="submitBtn" onclick="saveJob()" class="w-full btn-primary py-5 rounded-lg font-black text-lg mb-3 shadow-lg flex items-center justify-center gap-3"><span id="submitText">Submit Enquiry</span><i id="submitIcon" class="fa-solid fa-paper-plane"></i></button>
                     </div>
                 </div>
             </div>
@@ -212,126 +159,70 @@
 
     <div id="screen-profile" class="app-screen max-w-[800px] mx-auto py-16 px-6">
         <div class="frost-card p-10 border-t-8 border-red-600">
-            <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-black italic uppercase text-slate-800">Account Profile</h2>
-                <button onclick="showScreen('calculator')" class="text-[10px] font-bold uppercase text-slate-400 hover:text-red-600 underline">Back to Calculator</button>
-            </div>
+            <h2 class="text-2xl font-black italic uppercase mb-8">Account Profile</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div><span class="label-text">Full Name</span><input type="text" id="profFullName" class="frost-input"></div>
-                <div><span class="label-text">Registered Email</span><input type="text" id="profEmail" class="frost-input bg-slate-50" disabled></div>
-                <div class="md:col-span-2"><span class="label-text">Company Address</span><input type="text" id="profAddress" class="frost-input"></div>
+                <div><span class="label-text">Email</span><input type="text" id="profEmail" class="frost-input bg-slate-50" disabled></div>
                 <div><span class="label-text">Company Phone</span><input type="tel" id="profCompPhone" class="frost-input"></div>
-                <div><span class="label-text">Mobile Number</span><input type="tel" id="profMobile" class="frost-input"></div>
+                <div><span class="label-text">Mobile</span><input type="tel" id="profMobile" class="frost-input"></div>
             </div>
-            <button onclick="updateProfile()" id="profUpdateBtn" class="w-full btn-primary py-4 rounded mt-10 shadow-lg text-center">Save Profile Updates</button>
+            <button onclick="updateProfile()" id="profUpdateBtn" class="w-full btn-primary py-4 rounded mt-10">Save Updates</button>
+            <button onclick="showScreen('calculator')" class="w-full mt-4 text-xs font-bold uppercase text-slate-400">Back</button>
         </div>
     </div>
 
-    <footer class="status-bar">
-        <div>CORE ENGINE: <span class="text-white">FROST-V11.8</span></div>
-        <div class="ml-auto" id="statusVehicle">AWAITING ASSET SELECTION</div>
-    </footer>
+    <footer class="status-bar"><div>CORE ENGINE: <span class="text-white">FROST-V11.9-STABLE</span></div><div class="ml-auto" id="statusVehicle">AWAITING SELECTION</div></footer>
 
     <script>
         const _URL = "https://tdrzytgiqvdulityqttr.supabase.co";
         const _KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkcnp5dGdpcXZkdWxpdHlxdHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTM5NTMsImV4cCI6MjA4ODcyOTk1M30.XN46i7u6STD-2afmN7-Jh1MltADGpEuWlLt_n7wknbA";
         const sb = supabase.createClient(_URL, _KEY);
 
-        window.onload = async () => {
-            startClock();
-            const { data: { session }, error } = await sb.auth.getSession();
-            if (session && !error) { setupUser(session.user); showScreen('fleet'); }
+        window.onload = async () => { 
+            startClock(); 
+            const { data: { session } } = await sb.auth.getSession(); 
+            if (session) { setupUser(session.user); showScreen('fleet'); } 
         };
 
-        function startClock() {
-            const updateTime = () => {
-                const now = new Date();
-                const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-                const el = document.getElementById('fleetDateTime');
-                if(el) el.innerText = now.toLocaleString('en-GB', options).toUpperCase();
-            };
-            updateTime(); setInterval(updateTime, 1000);
-        }
+        function startClock() { setInterval(() => { const now = new Date(); document.getElementById('fleetDateTime').innerText = now.toLocaleString('en-GB').toUpperCase(); }, 1000); }
 
         async function handleAuth() {
-            const btn = document.getElementById('loginBtn');
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            if (!email || !password) return alert("Email/Password required");
-            const isRegMode = (btn.innerText === "REGISTER ACCOUNT");
-            btn.innerText = "PROCESSING..."; btn.disabled = true;
-            if(isRegMode) {
-                const { data, error } = await sb.auth.signUp({
-                    email, password,
-                    options: { data: {
-                        full_name: document.getElementById('regFullName').value,
-                        company_address: document.getElementById('regAddress').value,
-                        company_phone: document.getElementById('regCompPhone').value,
-                        mobile_number: document.getElementById('regMobile').value
-                    }}
-                });
-                if(error) { alert(error.message); resetAuth(); }
-                else { alert("Verification email sent!"); resetAuth(); }
+            const btn = document.getElementById('loginBtn'); const email = document.getElementById('email').value; const password = document.getElementById('password').value;
+            btn.innerText = "PROCESSING...";
+            const isReg = (btn.innerText === "REGISTER ACCOUNT");
+            if(isReg) {
+                const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: document.getElementById('regFullName').value }}});
+                if(error) alert(error.message); else alert("Check email!");
             } else {
                 const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) { alert("Access Denied"); resetAuth(); }
-                else { setupUser(data.user); showScreen('fleet'); }
+                if (error) alert("Denied"); else { setupUser(data.user); showScreen('fleet'); }
             }
+            btn.innerText = "Secure Login";
         }
 
-        function resetAuth() { const b = document.getElementById('loginBtn'); b.innerText = "Secure Login"; b.disabled = false; }
-
         function setupUser(user) {
-            const meta = user.user_metadata;
-            const displayName = meta?.full_name || user.email.split('@')[0];
-            document.getElementById('userBadge').innerText = displayName.toUpperCase();
-            document.getElementById('fleetUserName').innerText = displayName;
-            document.getElementById('profFullName').value = meta?.full_name || '';
+            const m = user.user_metadata;
+            document.getElementById('userBadge').innerText = (m?.full_name || 'USER').toUpperCase();
+            document.getElementById('profFullName').value = m?.full_name || '';
             document.getElementById('profEmail').value = user.email;
-            document.getElementById('profAddress').value = meta?.company_address || '';
-            document.getElementById('profCompPhone').value = meta?.company_phone || '';
-            document.getElementById('profMobile').value = meta?.mobile_number || '';
-            document.getElementById('custName').value = displayName;
             document.getElementById('custEmail').value = user.email;
             document.getElementById('userId').value = user.id;
         }
-
-        async function updateProfile() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session) { alert("Auth session missing! Please log in again."); showScreen('auth'); return; }
-            const btn = document.getElementById('profUpdateBtn'); btn.innerText = "UPDATING...";
-            const { data, error } = await sb.auth.updateUser({
-                data: {
-                    full_name: document.getElementById('profFullName').value,
-                    company_address: document.getElementById('profAddress').value,
-                    company_phone: document.getElementById('profCompPhone').value,
-                    mobile_number: document.getElementById('profMobile').value
-                }
-            });
-            if(error) alert(error.message);
-            else { alert("Profile Updated Successfully"); setupUser(data.user); showScreen('calculator'); }
-            btn.innerText = "Save Profile Updates";
-        }
-
-        function showScreen(id) {
-            document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active-screen'));
-            document.getElementById('screen-' + id).classList.add('active-screen');
-            window.scrollTo(0,0);
-        }
-
-        async function handleLogout() { await sb.auth.signOut(); location.reload(); }
 
         function selectVehicle(name, rate, mpg) {
             document.getElementById('activeRate').value = rate;
             document.getElementById('activeMPG').value = mpg;
             document.getElementById('activeVehicleName').value = name;
             document.getElementById('displayVehicleName').innerText = name.toUpperCase();
-            document.getElementById('statusVehicle').innerText = `${name.toUpperCase()} | £${rate}/HR`;
-            showScreen('calculator'); update();
+            showScreen('calculator');
         }
+
+        function showScreen(id) { document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById('screen-' + id).classList.add('active-screen'); }
+        async function handleLogout() { await sb.auth.signOut(); location.reload(); }
 
         let map, directionsRenderer, directionsService;
         function initMap() {
+            console.log("Google Maps Initializing...");
             directionsService = new google.maps.DirectionsService();
             directionsRenderer = new google.maps.DirectionsRenderer({ polylineOptions: { strokeColor: "#c32026", strokeWeight: 5 } });
             map = new google.maps.Map(document.getElementById("map"), { zoom: 6, center: { lat: 52.3, lng: -1.1 }, disableDefaultUI: true });
@@ -341,20 +232,15 @@
         }
 
         function calculate() {
-            const p = document.getElementById('pickup').value;
-            const d = document.getElementById('delivery').value;
+            const p = document.getElementById('pickup').value; const d = document.getElementById('delivery').value;
             if (p.length < 5 || d.length < 5) return;
-            let wps = [];
-            document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).forEach(l => wps.push({ location: l.trim(), stopover: true }));
-            directionsService.route({ origin: p, destination: d, waypoints: wps, travelMode: google.maps.TravelMode.DRIVING }, (res, stat) => {
+            directionsService.route({ origin: p, destination: d, travelMode: google.maps.TravelMode.DRIVING }, (res, stat) => {
                 if (stat === 'OK') {
                     directionsRenderer.setDirections(res);
-                    let m = 0, s = 0;
-                    res.routes[0].legs.forEach(leg => { m += leg.distance.value; s += leg.duration.value; });
-                    if(!document.getElementById('manualMode').checked) {
-                        document.getElementById('mileInput').value = Math.round((m * 0.000621371) * 1.05);
-                        document.getElementById('timeInput').value = ((s / 3600) * 1.25).toFixed(2);
-                    }
+                    const dist = res.routes[0].legs[0].distance.value;
+                    const dur = res.routes[0].legs[0].duration.value;
+                    document.getElementById('mileInput').value = Math.round((dist * 0.000621371) * 1.05);
+                    document.getElementById('timeInput').value = ((dur / 3600) * 1.25).toFixed(2);
                     update();
                 }
             });
@@ -365,128 +251,48 @@
             const mpg = parseFloat(document.getElementById('activeMPG').value) || 1;
             const miles = parseFloat(document.getElementById('mileInput').value) || 0;
             const hours = (parseFloat(document.getElementById('timeInput').value) || 0) + (parseFloat(document.getElementById('loadHrs').value) || 0) + (parseFloat(document.getElementById('tipHrs').value) || 0);
-            const fuel = (miles / mpg) * 4.546 * 1.25;
+            
+            const fuel = (miles / mpg) * 4.546 * 1.35;
             const labor = hours * rate;
-            let markupSurcharge = 0;
-            if(document.getElementById('multiDropCheck').checked) markupSurcharge += (document.getElementById('waypoints').value.split('\n').filter(l => l.trim().length > 2).length * 50);
-            const col = document.getElementById('colDate').value;
-            const del = document.getElementById('delDate').value;
-            let overnightApplied = false;
-            if(col && del && col !== del) { markupSurcharge += 50; overnightApplied = true; document.getElementById('overnightIndicator').className = "p-2 border rounded bg-red-50 text-[10px] font-black uppercase text-red-600 flex items-center"; document.getElementById('overnightStatus').innerText = "+£50.00 APPLIED"; }
-            else { document.getElementById('overnightIndicator').className = "p-2 border rounded bg-slate-50 text-[10px] font-black uppercase text-slate-400 flex items-center"; document.getElementById('overnightStatus').innerText = "NOT APPLICABLE"; }
-            let baseWithMarkup = (fuel + labor + markupSurcharge) * 1.25;
-            let roundedBase = Math.ceil(((baseWithMarkup) - 0.01) / 10) * 10;
-            let flatFees = 0;
-            if(document.getElementById('checkTailLift').checked) flatFees += 50;
-            if(document.getElementById('checkPre10').checked) flatFees += 25; 
-            if(document.getElementById('checkTimed').checked) flatFees += 50;
-            const total = roundedBase + flatFees;
-            document.getElementById('totalDisp').innerText = '£' + (total || 0).toFixed(2);
-            document.getElementById('breakdown').innerHTML = `
-                <div class='flex justify-between'><span>Operations (Inc. Markup)</span><span>£${roundedBase.toFixed(2)}</span></div>
-                ${document.getElementById('checkTailLift').checked ? `<div class='flex justify-between text-yellow-400 font-bold'><span>Tail Lift Flat Fee</span><span>£50.00</span></div>` : ''}
-                ${document.getElementById('checkPre10').checked ? `<div class='flex justify-between text-yellow-400 font-bold'><span>Pre-10AM Flat Fee</span><span>£25.00</span></div>` : ''}
-                ${document.getElementById('checkTimed').checked ? `<div class='flex justify-between text-yellow-400 font-bold'><span>Timed Booking Flat Fee</span><span>£50.00</span></div>` : ''}
-                ${overnightApplied ? `<div class='flex justify-between text-[10px] text-slate-400 italic'><span>(Includes Overnight Secure)</span></div>` : ''}
-            `;
+            const total = Math.ceil(((fuel + labor) * 1.15) / 10) * 10;
+            
+            document.getElementById('totalDisp').innerText = '£' + total.toFixed(2);
+            document.getElementById('breakdown').innerHTML = `<div class='flex justify-between'><span>Operational Estimate</span><span>£${total.toFixed(2)}</span></div>`;
         }
 
         async function saveJob() {
             const btn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('submitText');
-            const btnIcon = document.getElementById('submitIcon');
-            btn.disabled = true; btnText.innerText = "Processing..."; btnIcon.className = "fa-solid fa-circle-notch fa-spin";
+            btn.disabled = true; document.getElementById('submitText').innerText = "Sending...";
 
-            // We use .select() here to get the ID back after insertion
-            const { data, error } = await sb.from('quotes').insert([{
+            const { error } = await sb.from('quotes').insert([{
                 pickup: document.getElementById('pickup').value,
                 delivery: document.getElementById('delivery').value,
+                col_date: document.getElementById('colDate').value,
+                del_date: document.getElementById('delDate').value,
+                est_miles: parseFloat(document.getElementById('mileInput').value) || 0,
+                est_hours: parseFloat(document.getElementById('timeInput').value) || 0,
                 customer_name: document.getElementById('profFullName').value,
                 customer_email: document.getElementById('custEmail').value,
-                customer_phone: document.getElementById('profMobile').value || document.getElementById('profCompPhone').value,
-                user_id: document.getElementById('userId').value,
                 total_price: parseFloat(document.getElementById('totalDisp').innerText.replace('£','')),
                 vehicle_type: document.getElementById('activeVehicleName').value,
                 reference: document.getElementById('jobRef').value,
                 notes: document.getElementById('jobNotes').value,
                 status: 'pending'
-            }]).select();
+            }]);
 
-            if (error) { 
-                alert("Submission Error: " + error.message); 
-                btn.disabled = false; btnText.innerText = "Submit Enquiry"; btnIcon.className = "fa-solid fa-paper-plane"; 
-            } else { 
-                btn.style.background = "#10b981"; 
-                btnText.innerText = "Enquiry Sent!"; 
-                btnIcon.className = "fa-solid fa-check"; 
-                
-                // Update UI Status
-                document.getElementById('status-badge').innerText = "PENDING";
-                
-                // Start listening for the planner's acceptance immediately
-                if(data && data[0]) startTracking(data[0].id);
-            }
+            if (error) { alert(error.message); btn.disabled = false; }
+            else { document.getElementById('submitText').innerText = "SENT!"; btn.style.background = "#10b981"; }
         }
 
-        function startTracking(quoteId) {
-            console.log("Listening for updates on quote:", quoteId);
-            
-            sb.channel('quote-updates')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'quotes',
-                    filter: `id=eq.${quoteId}` 
-                },
-                (payload) => {
-                    if (payload.new.status === 'assigned') {
-                        alert("Success! Your job has been accepted and assigned to a FROST driver.");
-                        const badge = document.getElementById('status-badge');
-                        badge.innerText = "ASSIGNED";
-                        badge.classList.add('status-assigned');
-                    }
-                }
-            )
-            .subscribe();
-        }
-
-        function downloadQuote() {
-            const { jsPDF } = window.jspdf; const doc = new jsPDF(); const dark = [15, 23, 42];   
-            doc.setFillColor(...dark); doc.rect(0, 0, 210, 50, 'F');
-            try { doc.addImage(document.getElementById('pdfLogoSource'), 'PNG', 20, 10, 30, 30); } catch(e) {}
-            doc.setFont("helvetica", "bold"); doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.text("FROST TRANSPORT", 60, 25);
-            doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.text("EXPRESS LOGISTICS & FREIGHT SOLUTIONS", 60, 32);
-            doc.setFontSize(9); doc.text("QUOTATION NO:", 140, 20); doc.text("DATE:", 140, 26); doc.text("JOB REF:", 140, 32);
-            doc.setFont("helvetica", "bold"); doc.text("FTS-" + Math.floor(1000 + Math.random() * 9000), 175, 20); doc.text(new Date().toLocaleDateString('en-GB'), 175, 26); doc.text(document.getElementById('jobRef').value || "N/A", 175, 32);
-            doc.setTextColor(40); doc.setFontSize(10); doc.text("PREPARED FOR:", 20, 65); doc.text("PROVIDER DETAILS:", 120, 65);
-            doc.setFont("helvetica", "bold"); doc.text(document.getElementById('profFullName').value.toUpperCase() || "VALUED CUSTOMER", 20, 71);
-            doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-            const addr = document.getElementById('profAddress').value || "Address Not Provided"; const splitAddr = doc.splitTextToSize(addr, 70); doc.text(splitAddr, 20, 77);
-            let nextY = 77 + (splitAddr.length * 5); doc.text(document.getElementById('profEmail').value || "Email Not Provided", 20, nextY); doc.text("Tel: " + (document.getElementById('profMobile').value || document.getElementById('profCompPhone').value || "N/A"), 20, nextY + 5);
-            doc.setFont("helvetica", "bold"); doc.text("FROST TRANSPORT SOLUTIONS", 120, 71); doc.setFont("helvetica", "normal"); doc.text(["Fosse Way, Car Colston", "Nottinghamshire", "NG13 8JA", "Tel: 01949 480 130"], 120, 77);
-            doc.autoTable({
-                startY: 110, theme: 'grid', head: [['SERVICE DESCRIPTION', 'ASSET TYPE', 'DISTANCE', 'TOTAL (EX. VAT)']],
-                body: [[`Express Transport: ${document.getElementById('pickup').value} to ${document.getElementById('delivery').value}\n\nCOLLECTION: ${document.getElementById('colDate').value || "TBA"} @ ${document.getElementById('colTime').value || "TBA"}\nDELIVERY: ${document.getElementById('delDate').value || "TBA"} @ ${document.getElementById('checkTimed').checked ? document.getElementById('delTime').value : "Standard"}`, document.getElementById('activeVehicleName').value, document.getElementById('mileInput').value + " Miles", document.getElementById('totalDisp').innerText]],
-                headStyles: { fillColor: dark, textColor: 255, fontStyle: 'bold' }, styles: { fontSize: 9, cellPadding: 6 }, columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } }
-            });
-            const finalY = doc.lastAutoTable.finalY + 15; doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text("ADDITIONAL INSTRUCTIONS / NOTES:", 20, finalY);
-            doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.text(doc.splitTextToSize(document.getElementById('jobNotes').value || "No specific instructions provided.", 170), 20, finalY + 7);
-            doc.setFillColor(245, 245, 245); doc.rect(120, finalY + 30, 70, 25, 'F'); doc.setTextColor(195, 32, 38); doc.setFontSize(14); doc.text("QUOTE TOTAL", 125, finalY + 40); doc.setFontSize(18); doc.text(document.getElementById('totalDisp').innerText, 125, finalY + 50);
-            doc.save(`Frost_Quotation_${document.getElementById('jobRef').value || 'New'}.pdf`);
-        }
-
-        function clearForm() { if(!confirm("Clear all entry data?")) return; document.getElementById('pickup').value = ""; document.getElementById('delivery').value = ""; document.getElementById('jobRef').value = ""; document.getElementById('jobNotes').value = ""; document.getElementById('colDate').value = ""; document.getElementById('delDate').value = ""; document.getElementById('colTime').value = ""; document.getElementById('delTime').value = ""; document.getElementById('checkTimed').checked = false; document.getElementById('mileInput').value = 0; document.getElementById('timeInput').value = 0; document.getElementById('checkTailLift').checked = false; document.getElementById('checkPre10').checked = false; document.getElementById('multiDropCheck').checked = false; document.getElementById('waypoints').value = ""; toggleMultiDrop(); toggleTimedBooking(); if(directionsRenderer) directionsRenderer.setDirections({routes: []}); update(); }
-        function toggleMultiDrop() { document.getElementById('waypointContainer').style.display = document.getElementById('multiDropCheck').checked ? 'block' : 'none'; calculate(); }
-        function toggleManual() { const m = document.getElementById('manualMode').checked; document.getElementById('mileInput').disabled = !m; document.getElementById('timeInput').disabled = !m; }
-        function validateDates() { const col = document.getElementById('colDate'); const del = document.getElementById('delDate'); if(col.value) del.min = col.value; }
-        function toggleTimedBooking() { const isChecked = document.getElementById('checkTimed').checked; document.getElementById('timedDeliveryRow').style.display = isChecked ? 'block' : 'none'; }
-        function toggleAuthMode() {
-            const reg = document.getElementById('regFields'); const title = document.getElementById('authTitle'); const btn = document.getElementById('loginBtn'); const toggle = document.getElementById('toggleBtn');
-            if (reg.style.display === 'none') { reg.style.display = 'block'; title.innerText = "Create Account"; btn.innerText = "Register Account"; toggle.innerText = "Already have an account? Login"; }
-            else { reg.style.display = 'none'; title.innerText = "User Login"; btn.innerText = "Secure Login"; toggle.innerText = "Register New Account"; }
+        function validateDates() { document.getElementById('delDate').min = document.getElementById('colDate').value; }
+        function toggleAuthMode() { 
+            const reg = document.getElementById('regFields'); 
+            reg.style.display = reg.style.display === 'none' ? 'block' : 'none'; 
+            document.getElementById('authTitle').innerText = reg.style.display === 'none' ? 'User Login' : 'Create Account';
+            document.getElementById('loginBtn').innerText = reg.style.display === 'none' ? 'Secure Login' : 'Register Account';
         }
     </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDOPkYduNBvti4HWX2izIhCrrQ02uk5SL0&libraries=places&callback=initMap"></script>
 </body>
 </html>
